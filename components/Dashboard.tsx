@@ -73,9 +73,11 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        {/* Added min-w-0 to prevent grid item blowout which confuses Recharts */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-w-0">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Performance Trends</h3>
-          <div className="h-72 w-full">
+          {/* Added min-w-0 to the immediate parent of ResponsiveContainer */}
+          <div className="h-72 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={MOCK_CHART_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
@@ -101,7 +103,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col min-w-0">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-indigo-500" />
