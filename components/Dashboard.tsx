@@ -1,15 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ArrowUpRight, DollarSign, ShoppingCart, Percent, Activity } from 'lucide-react';
+import { ArrowUpRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_CAMPAIGNS, MOCK_CHART_DATA } from '../constants';
 import { CampaignTable } from './CampaignTable';
+import { generateMarketInsights } from '../services/geminiService';
+import { MarketInsight } from '../types';
 
 export const Dashboard: React.FC = () => {
+  const [insights, setInsights] = useState<MarketInsight[]>([]);
+  const [loadingInsights, setLoadingInsights] = useState(true);
+
   // Aggregate mock totals
   const totalSpend = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.spend, 0);
   const totalSales = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.sales, 0);
   const totalImpressions = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.impressions, 0);
   const avgAcos = (totalSpend / totalSales) * 100;
+
+  useEffect(() => {
+    const fetchInsights = async () => {
+      const data = await generateMarketInsights(MOCK_CAMPAIGNS);
+      setInsights(data);
+      setLoadingInsights(false);
+    };
+    fetchInsights();
+  }, []);
+
+  const getSentimentIcon = (sentiment: string) => {
+    switch (sentiment) {
+        case 'POSITIVE': return <CheckCircle className="text-emerald-500 w-4 h-4" />;
+        case 'NEGATIVE': return <AlertTriangle className="text-amber-500 w-4 h-4" />;
+        default: return <Activity className="text-blue-500 w-4 h-4" />;
+    }
+  };
+
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment) {
+        case 'POSITIVE': return 'text-emerald-600';
+        case 'NEGATIVE': return 'text-amber-600';
+        default: return 'text-blue-600';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -71,30 +101,41 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Market Insights</h3>
-            <div className="space-y-4">
-                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Top Search Term</div>
-                    <div className="font-medium text-slate-900">"ergonomic office chair"</div>
-                    <div className="text-xs text-emerald-600 mt-1 flex items-center">
-                        <ArrowUpRight size={12} className="mr-1"/> 15% conversion rate
-                    </div>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Competitor Alert</div>
-                    <div className="font-medium text-slate-900">Brand X increased bids</div>
-                    <div className="text-xs text-amber-600 mt-1 flex items-center">
-                        Affecting 3 active campaigns
-                    </div>
-                </div>
-                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Inventory Health</div>
-                    <div className="font-medium text-slate-900">98% In Stock</div>
-                    <div className="text-xs text-blue-600 mt-1">
-                        Ready for scale
-                    </div>
-                </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-500" />
+                    Market Insights
+                </h3>
+                {loadingInsights && <span className="text-xs text-slate-400 animate-pulse">Analzying...</span>}
+            </div>
+            
+            <div className="space-y-4 flex-1">
+                {loadingInsights ? (
+                    // Skeleton Loading
+                    [1, 2, 3].map((i) => (
+                        <div key={i} className="p-4 bg-slate-50 rounded-lg border border-slate-100 animate-pulse">
+                            <div className="h-4 bg-slate-200 rounded w-1/3 mb-2"></div>
+                            <div className="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-slate-200 rounded w-1/4"></div>
+                        </div>
+                    ))
+                ) : (
+                    insights.map((insight, idx) => (
+                        <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-100 transition-all hover:shadow-sm">
+                            <div className="flex justify-between items-start mb-1">
+                                <div className="text-sm text-slate-500 font-medium">{insight.title}</div>
+                                {getSentimentIcon(insight.sentiment)}
+                            </div>
+                            <div className="font-medium text-slate-900 text-sm mb-1">{insight.description}</div>
+                            {insight.metric && (
+                                <div className={`text-xs ${getSentimentColor(insight.sentiment)} mt-1 flex items-center font-medium`}>
+                                    <ArrowRight size={10} className="mr-1"/> {insight.metric}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
             </div>
         </div>
       </div>

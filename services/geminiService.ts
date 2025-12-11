@@ -1,20 +1,33 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { Campaign, OptimizationSuggestion } from "../types";
+import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { Campaign, OptimizationSuggestion, OptimizationStrategy, MarketInsight } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
-export const analyzeCampaigns = async (campaigns: Campaign[]): Promise<OptimizationSuggestion[]> => {
+export const analyzeCampaigns = async (campaigns: Campaign[], strategy: OptimizationStrategy): Promise<OptimizationSuggestion[]> => {
   if (!apiKey) {
     console.warn("API Key is missing. Returning mock analysis.");
     return mockAnalysis(campaigns);
+  }
+
+  let strategyContext = "";
+  switch (strategy) {
+    case 'PROFITABILITY':
+      strategyContext = "Prioritize reducing ACOS aggressively. Suggest pausing keywords with ACOS > 30% and lowering bids on low ROAS campaigns. We are maximizing profit.";
+      break;
+    case 'GROWTH':
+      strategyContext = "Prioritize Impressions and Sales volume. ACOS up to 45% is acceptable. Suggest increasing bids on high converting terms. We are in launch/ranking mode.";
+      break;
+    default:
+      strategyContext = "Maintain a balance between Spend and Sales. Target ACOS around 30%. Optimize outliers.";
   }
 
   try {
     const prompt = `
       You are an expert Amazon Advertising Analyst. 
       Analyze the following campaign performance data and provide actionable optimization suggestions.
-      Focus on reducing ACOS and increasing ROAS.
+      
+      CURRENT STRATEGY: ${strategyContext}
       
       Campaign Data:
       ${JSON.stringify(campaigns)}
@@ -53,6 +66,80 @@ export const analyzeCampaigns = async (campaigns: Campaign[]): Promise<Optimizat
     return mockAnalysis(campaigns);
   }
 };
+
+export const generateMarketInsights = async (campaigns: Campaign[]): Promise<MarketInsight[]> => {
+  if (!apiKey) {
+    return [
+      { title: "Top Search Term", description: "Strong performance on 'ergonomic office chair'", sentiment: "POSITIVE", metric: "15% Conv" },
+      { title: "Competitor Alert", description: "Brand X increased bids on core terms", sentiment: "NEGATIVE", metric: "High CPC" },
+      { title: "Inventory Health", description: "98% In Stock - Ready for scale", sentiment: "NEUTRAL", metric: "Healthy" }
+    ];
+  }
+
+  try {
+    const prompt = `
+      Analyze these Amazon campaigns. Provide 3 short, high-level market insights or alerts for the dashboard.
+      Focus on trends, anomalies, or opportunities.
+      Data: ${JSON.stringify(campaigns)}
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              sentiment: { type: Type.STRING, enum: ['POSITIVE', 'NEGATIVE', 'NEUTRAL'] },
+              metric: { type: Type.STRING, nullable: true }
+            },
+            required: ['title', 'description', 'sentiment']
+          }
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text) as MarketInsight[];
+    }
+    throw new Error("No data returned");
+  } catch (error) {
+    console.error("Insight Gen Failed", error);
+     return [
+      { title: "API Error", description: "Could not generate live insights", sentiment: "NEUTRAL" }
+    ];
+  }
+}
+
+export const createCampaignChat = (campaigns: Campaign[], strategy: OptimizationStrategy): Chat => {
+  const systemContext = `
+    You are 'Alerion', an advanced Amazon PPC AI Assistant.
+    
+    CURRENT STRATEGIC GOAL: ${strategy}
+    (If Profitability: Focus on low ACOS. If Growth: Focus on Sales/Impressions. If Balanced: Focus on ROAS).
+
+    You have access to the following live campaign data:
+    ${JSON.stringify(campaigns)}
+
+    Your goal is to answer questions about this specific data.
+    - Be concise and strategic.
+    - Use specific numbers from the data.
+    - If a user asks for advice, refer to metrics like ACOS, ROAS, and CTR.
+  `;
+
+  return ai.chats.create({
+    model: 'gemini-2.5-flash',
+    config: {
+      systemInstruction: systemContext,
+    },
+  });
+};
+
 
 // Fallback for demo purposes if API key is invalid/missing
 const mockAnalysis = (campaigns: Campaign[]): OptimizationSuggestion[] => {

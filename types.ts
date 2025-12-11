@@ -5,6 +5,8 @@ export enum CampaignStatus {
   OUT_OF_BUDGET = 'OUT_OF_BUDGET'
 }
 
+export type OptimizationStrategy = 'PROFITABILITY' | 'GROWTH' | 'BALANCED';
+
 export interface Campaign {
   id: string;
   name: string;
@@ -26,6 +28,13 @@ export interface OptimizationSuggestion {
   reasoning: string;
   suggestedAction: 'INCREASE_BID' | 'DECREASE_BID' | 'PAUSE_KEYWORD' | 'ADD_NEGATIVE';
   value?: number;
+}
+
+export interface MarketInsight {
+  title: string;
+  description: string;
+  sentiment: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  metric?: string;
 }
 
 export interface ChartDataPoint {
