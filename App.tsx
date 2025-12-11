@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, BarChart3, Settings, Zap, Menu, X, Bell, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings, Zap, Menu, X, Bell, User, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AIOptimizer } from './components/AIOptimizer';
 
@@ -33,32 +33,35 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
       {/* Sidebar - Desktop */}
       <aside 
-        className={`hidden lg:flex flex-col bg-slate-900 text-white fixed h-full z-10 transition-all duration-300 ease-in-out ${
+        className={`hidden lg:flex flex-col bg-[#0f172a] text-white fixed h-full z-30 transition-all duration-300 ease-in-out border-r border-slate-800 ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
       >
-        <div className={`h-16 flex items-center border-b border-slate-800 transition-all duration-300 ${
+        {/* Brand Area */}
+        <div className={`h-20 flex items-center transition-all duration-300 ${
           isCollapsed ? 'justify-center px-0' : 'justify-start px-6'
         }`}>
-          <div className="flex items-center space-x-3 overflow-hidden">
-             <img src="https://raw.githubusercontent.com/johnwesleyquintero/alerion/main/public/logo.svg" className="w-8 h-8 bg-white rounded-md p-1 min-w-[2rem]" alt="Logo" onError={(e) => { e.currentTarget.src = 'https://picsum.photos/32/32?grayscale' }} />
-             <span className={`text-xl font-bold tracking-tight whitespace-nowrap transition-opacity duration-300 ${
-               isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'
-             }`}>
-               Alerion
-             </span>
+          <div className="flex items-center gap-3 overflow-hidden">
+             <div className="relative">
+                <img src="https://raw.githubusercontent.com/johnwesleyquintero/alerion/main/public/logo.svg" className="w-9 h-9 bg-indigo-600 rounded-lg p-1.5 shadow-lg shadow-indigo-500/20" alt="Logo" onError={(e) => { e.currentTarget.src = 'https://picsum.photos/32/32?grayscale' }} />
+             </div>
+             <div className={`flex flex-col transition-opacity duration-300 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
+                <span className="text-lg font-bold tracking-tight text-white leading-none">Alerion</span>
+                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-1">Analytics</span>
+             </div>
           </div>
         </div>
         
-        <nav className="flex-1 py-6 space-y-2 px-3">
+        {/* Navigation */}
+        <nav className="flex-1 py-8 space-y-1.5 px-3">
           <NavItem 
             active={currentView === View.DASHBOARD} 
             onClick={() => setCurrentView(View.DASHBOARD)}
             icon={<LayoutDashboard size={20} />}
-            label="Dashboard"
+            label="Overview"
             collapsed={isCollapsed}
           />
           <NavItem 
@@ -72,12 +75,13 @@ const App: React.FC = () => {
             active={false}
             onClick={() => {}}
             icon={<BarChart3 size={20} />}
-            label="Reporting"
+            label="Reports"
             collapsed={isCollapsed}
           />
         </nav>
 
-        <div className="p-3 border-t border-slate-800 space-y-2">
+        {/* Footer Area */}
+        <div className="p-4 border-t border-slate-800/50 space-y-1 bg-slate-900/50">
            <NavItem 
             active={currentView === View.SETTINGS} 
             onClick={() => setCurrentView(View.SETTINGS)}
@@ -85,10 +89,17 @@ const App: React.FC = () => {
             label="Settings"
             collapsed={isCollapsed}
           />
+           <NavItem 
+            active={false} 
+            onClick={() => {}}
+            icon={<LogOut size={20} />}
+            label="Sign Out"
+            collapsed={isCollapsed}
+          />
           
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-white transition-colors mt-2"
+            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-white transition-colors mt-4 border border-transparent hover:border-slate-700"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
@@ -99,15 +110,18 @@ const App: React.FC = () => {
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}>
-           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"></div>
+           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"></div>
         </div>
       )}
 
       {/* Mobile Sidebar */}
-      <div className={`fixed inset-y-0 left-0 w-64 bg-slate-900 text-white z-50 transform transition-transform duration-300 lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 w-72 bg-[#0f172a] text-white z-50 transform transition-transform duration-300 lg:hidden shadow-2xl ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between p-6 border-b border-slate-800">
-          <span className="text-xl font-bold">Alerion</span>
-          <button onClick={() => setIsSidebarOpen(false)}><X size={24} /></button>
+          <div className="flex items-center gap-3">
+             <img src="https://raw.githubusercontent.com/johnwesleyquintero/alerion/main/public/logo.svg" className="w-8 h-8 bg-indigo-600 rounded-lg p-1.5" alt="Logo" />
+             <span className="text-xl font-bold">Alerion</span>
+          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
         </div>
         <nav className="p-4 space-y-2">
           <NavItem active={currentView === View.DASHBOARD} onClick={() => { setCurrentView(View.DASHBOARD); setIsSidebarOpen(false); }} icon={<LayoutDashboard />} label="Dashboard" collapsed={false} />
@@ -121,36 +135,41 @@ const App: React.FC = () => {
         isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
       }`}>
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-20 px-4 md:px-8 flex items-center justify-between">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 px-4 md:px-8 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-             <button className="lg:hidden text-slate-500" onClick={() => setIsSidebarOpen(true)}>
+             <button className="lg:hidden text-slate-500 hover:text-slate-700" onClick={() => setIsSidebarOpen(true)}>
                <Menu size={24} />
              </button>
-             <h1 className="text-xl font-semibold text-slate-800 hidden md:block">
-                {currentView === View.DASHBOARD ? 'Overview' : currentView === View.OPTIMIZER ? 'Bid Optimization' : 'Settings'}
-             </h1>
+             <div>
+                <h1 className="text-xl font-bold text-slate-900 hidden md:block">
+                    {currentView === View.DASHBOARD ? 'Dashboard Overview' : currentView === View.OPTIMIZER ? 'Strategic Optimizer' : 'System Settings'}
+                </h1>
+                <p className="text-xs text-slate-500 hidden md:block mt-0.5">
+                    {currentView === View.DASHBOARD ? 'Real-time performance metrics' : 'AI-driven campaign management'}
+                </p>
+             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-             <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          <div className="flex items-center gap-6">
+             <button className="relative group">
+                <Bell size={20} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
              </button>
-             <div className="h-8 w-px bg-slate-200 mx-1"></div>
-             <div className="flex items-center gap-3">
-                <div className="text-right hidden md:block">
-                   <div className="text-sm font-medium text-slate-900">John Wesley</div>
-                   <div className="text-xs text-slate-500">Admin</div>
+             
+             <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+                <div className="text-right hidden md:block leading-tight">
+                   <div className="text-sm font-bold text-slate-900">John Wesley</div>
+                   <div className="text-xs text-slate-500 font-medium">Administrator</div>
                 </div>
-                <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700">
-                   <User size={18} />
-                </div>
+                <button className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors">
+                   <User size={20} />
+                </button>
              </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+        <div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full">
            {renderContent()}
         </div>
       </main>
@@ -170,17 +189,17 @@ const NavItem: React.FC<NavItemProps> = ({ active, onClick, icon, label, collaps
   <button 
     onClick={onClick}
     title={collapsed ? label : undefined}
-    className={`w-full flex items-center transition-colors rounded-lg ${
+    className={`w-full flex items-center transition-all duration-200 rounded-lg group ${
       collapsed 
-        ? 'justify-center px-2 py-3' 
+        ? 'justify-center px-2 py-3 mx-auto' 
         : 'space-x-3 px-4 py-3'
     } ${
       active 
-        ? 'bg-indigo-600 text-white' 
+        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20' 
         : 'text-slate-400 hover:bg-slate-800 hover:text-white'
     }`}
   >
-    <span className="flex-shrink-0">{icon}</span>
+    <span className={`flex-shrink-0 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</span>
     <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ${
       collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
     }`}>

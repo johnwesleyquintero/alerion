@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ArrowUpRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight, TrendingUp } from 'lucide-react';
 import { MOCK_CAMPAIGNS, MOCK_CHART_DATA } from '../constants';
 import { CampaignTable } from './CampaignTable';
 import { generateMarketInsights } from '../services/geminiService';
@@ -18,9 +18,7 @@ export const Dashboard: React.FC = () => {
   const avgAcos = (totalSpend / totalSales) * 100;
 
   useEffect(() => {
-    // Mark as mounted to ensure window/DOM is available for Recharts
     setIsMounted(true);
-    
     const fetchInsights = async () => {
       const data = await generateMarketInsights(MOCK_CAMPAIGNS);
       setInsights(data);
@@ -39,124 +37,194 @@ export const Dashboard: React.FC = () => {
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
-        case 'POSITIVE': return 'text-emerald-600';
-        case 'NEGATIVE': return 'text-amber-600';
-        default: return 'text-blue-600';
+        case 'POSITIVE': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+        case 'NEGATIVE': return 'text-amber-600 bg-amber-50 border-amber-100';
+        default: return 'text-blue-600 bg-blue-50 border-blue-100';
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard 
           title="Total Sales" 
           value={`$${totalSales.toLocaleString()}`} 
           trend="+12.5%" 
-          icon={<ShoppingCart className="text-blue-600" />} 
+          icon={<ShoppingCart className="text-white w-5 h-5" />}
+          gradient="from-blue-500 to-blue-600"
+          subtext="vs. last 30 days"
         />
         <KPICard 
           title="Ad Spend" 
           value={`$${totalSpend.toLocaleString()}`} 
           trend="-2.1%" 
           trendGood={true}
-          icon={<DollarSign className="text-indigo-600" />} 
+          icon={<DollarSign className="text-white w-5 h-5" />}
+          gradient="from-indigo-500 to-indigo-600"
+           subtext="Budget utilization: 84%"
         />
         <KPICard 
           title="ACOS" 
           value={`${avgAcos.toFixed(2)}%`} 
           trend="-1.5%" 
           trendGood={true}
-          icon={<Percent className="text-emerald-600" />} 
+          icon={<Percent className="text-white w-5 h-5" />}
+          gradient="from-emerald-500 to-emerald-600"
+           subtext="Target: 30.00%"
         />
         <KPICard 
           title="Impressions" 
           value={totalImpressions.toLocaleString()} 
           trend="+5.4%" 
-          icon={<Activity className="text-purple-600" />} 
+          icon={<Activity className="text-white w-5 h-5" />}
+          gradient="from-violet-500 to-violet-600"
+          subtext="CTR: 2.85%"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Added min-w-0 to prevent grid item blowout which confuses Recharts */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-w-0">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Performance Trends</h3>
-          {/* Added min-w-0 to the immediate parent of ResponsiveContainer */}
-          <div className="h-72 w-full min-w-0 relative">
-            {isMounted ? (
-              <div className="absolute inset-0">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <AreaChart data={MOCK_CHART_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                    />
-                    <Area type="monotone" dataKey="sales" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSales)" name="Sales" />
-                    <Area type="monotone" dataKey="spend" stroke="#6366f1" fillOpacity={1} fill="url(#colorSpend)" name="Spend" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-               <div className="w-full h-full flex items-center justify-center bg-slate-50/50 rounded-lg animate-pulse">
-                  <Activity className="text-slate-300 w-8 h-8" />
-               </div>
-            )}
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+        {/* Main Charts Column */}
+        <div className="xl:col-span-2 space-y-6">
+          
+          {/* Timeline Chart */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-w-0">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Performance Trends</h3>
+                  <p className="text-sm text-slate-500">Sales vs. Spend over time</p>
+                </div>
+                <div className="flex gap-2">
+                    <span className="flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-1"></div> Sales
+                    </span>
+                    <span className="flex items-center text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 mr-1"></div> Spend
+                    </span>
+                </div>
+            </div>
+            <div className="h-72 w-full min-w-0 relative">
+              {isMounted ? (
+                <div className="absolute inset-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={MOCK_CHART_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+                      />
+                      <Area type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" name="Sales" />
+                      <Area type="monotone" dataKey="spend" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSpend)" name="Spend" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                 <div className="w-full h-full flex items-center justify-center bg-slate-50 rounded-xl animate-pulse">
+                    <Activity className="text-slate-300 w-8 h-8" />
+                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Campaign Comparison Chart (New) */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-w-0">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Campaign Efficiency</h3>
+                  <p className="text-sm text-slate-500">Top campaigns by volume</p>
+                </div>
+            </div>
+            <div className="h-60 w-full min-w-0 relative">
+               {isMounted && (
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={MOCK_CAMPAIGNS} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <XAxis type="number" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
+                      <YAxis dataKey="name" type="category" width={100} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => val.length > 15 ? val.substring(0, 15) + '...' : val} />
+                      <Tooltip 
+                        cursor={{fill: '#f8fafc'}}
+                        contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                      <Bar dataKey="sales" name="Sales Revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} />
+                      <Bar dataKey="spend" name="Ad Spend" fill="#cbd5e1" radius={[0, 4, 4, 0]} barSize={12} />
+                   </BarChart>
+                 </ResponsiveContainer>
+               )}
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col min-w-0">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-500" />
-                    Market Insights
-                </h3>
-                {loadingInsights && <span className="text-xs text-slate-400 animate-pulse">Analzying...</span>}
-            </div>
+        {/* Right Sidebar: Insights & Actions */}
+        <div className="flex flex-col gap-6">
             
-            <div className="space-y-4 flex-1">
-                {loadingInsights ? (
-                    // Skeleton Loading
-                    [1, 2, 3].map((i) => (
-                        <div key={i} className="p-4 bg-slate-50 rounded-lg border border-slate-100 animate-pulse">
-                            <div className="h-4 bg-slate-200 rounded w-1/3 mb-2"></div>
-                            <div className="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
-                            <div className="h-3 bg-slate-200 rounded w-1/4"></div>
-                        </div>
-                    ))
-                ) : (
-                    insights.map((insight, idx) => (
-                        <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-100 transition-all hover:shadow-sm">
-                            <div className="flex justify-between items-start mb-1">
-                                <div className="text-sm text-slate-500 font-medium">{insight.title}</div>
-                                {getSentimentIcon(insight.sentiment)}
+            {/* Insights Panel */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col min-w-0 h-full">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-indigo-500 fill-indigo-50" />
+                        AI Insights
+                    </h3>
+                    {loadingInsights && <span className="text-xs text-indigo-500 font-medium animate-pulse">Processing...</span>}
+                </div>
+                
+                <div className="space-y-4 flex-1">
+                    {loadingInsights ? (
+                        [1, 2, 3].map((i) => (
+                            <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100 animate-pulse">
+                                <div className="h-4 bg-slate-200 rounded w-1/3 mb-2"></div>
+                                <div className="h-3 bg-slate-200 rounded w-full mb-2"></div>
+                                <div className="h-3 bg-slate-200 rounded w-2/3"></div>
                             </div>
-                            <div className="font-medium text-slate-900 text-sm mb-1">{insight.description}</div>
-                            {insight.metric && (
-                                <div className={`text-xs ${getSentimentColor(insight.sentiment)} mt-1 flex items-center font-medium`}>
-                                    <ArrowRight size={10} className="mr-1"/> {insight.metric}
+                        ))
+                    ) : (
+                        insights.map((insight, idx) => (
+                            <div key={idx} className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${getSentimentColor(insight.sentiment)}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider opacity-80">{insight.title}</span>
+                                    {getSentimentIcon(insight.sentiment)}
                                 </div>
-                            )}
-                        </div>
-                    ))
-                )}
+                                <p className="text-sm font-medium text-slate-700 leading-snug mb-3">
+                                    {insight.description}
+                                </p>
+                                {insight.metric && (
+                                    <div className="flex items-center text-xs font-bold opacity-90">
+                                        <TrendingUp size={12} className="mr-1" />
+                                        {insight.metric}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      {/* Tables Section */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-slate-800">Active Campaigns</h3>
+            <div>
+                <h3 className="text-lg font-bold text-slate-800">Active Campaigns</h3>
+                <p className="text-sm text-slate-500">Real-time performance metrics</p>
+            </div>
+            <button className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                View All <ArrowRight size={16} />
+            </button>
          </div>
          <CampaignTable campaigns={MOCK_CAMPAIGNS} />
       </div>
@@ -164,15 +232,26 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-const KPICard = ({ title, value, trend, icon, trendGood = false }: { title: string, value: string, trend: string, icon: React.ReactNode, trendGood?: boolean }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-    <div className="flex justify-between items-start mb-4">
-      <div className="p-2 bg-slate-50 rounded-lg">{icon}</div>
-      <span className={`text-sm font-medium ${trendGood || trend.startsWith('+') && !trendGood ? 'text-emerald-600' : 'text-slate-500'}`}>
-        {trend}
-      </span>
+// Polished KPI Card with Gradient
+const KPICard = ({ title, value, trend, icon, trendGood = false, gradient, subtext }: { 
+    title: string, value: string, trend: string, icon: React.ReactNode, trendGood?: boolean, gradient: string, subtext?: string 
+}) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
+    <div className="flex justify-between items-start mb-4 relative z-10">
+      <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform duration-300`}>
+        {icon}
+      </div>
+      <div className={`flex items-center gap-1 text-sm font-bold px-2 py-1 rounded-full ${trendGood || trend.startsWith('+') && !trendGood ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
+         {trend.startsWith('+') ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+         {trend}
+      </div>
     </div>
-    <div className="text-slate-500 text-sm">{title}</div>
-    <div className="text-2xl font-bold text-slate-900 mt-1">{value}</div>
+    <div className="relative z-10">
+        <div className="text-slate-500 text-sm font-medium mb-1">{title}</div>
+        <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{value}</div>
+        {subtext && <div className="text-xs text-slate-400 mt-2 font-medium">{subtext}</div>}
+    </div>
+    {/* Decorative Background Blob */}
+    <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-5 bg-gradient-to-br ${gradient} group-hover:scale-150 transition-transform duration-500 ease-out`}></div>
   </div>
 );
