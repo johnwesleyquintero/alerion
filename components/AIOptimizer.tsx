@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { analyzeCampaigns, createCampaignChat } from '../services/geminiService';
 import { MOCK_CAMPAIGNS } from '../constants';
 import { OptimizationSuggestion, OptimizationStrategy } from '../types';
-import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check } from 'lucide-react';
+import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check, Square, CheckSquare, Zap } from 'lucide-react';
 import { Chat, GenerateContentResponse } from "@google/genai";
 
 interface ChatMessage {
@@ -15,7 +15,12 @@ export const AIOptimizer: React.FC = () => {
   const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
+  
+  // Track completed IDs instead of indices for better reliability
   const [completedSuggestions, setCompletedSuggestions] = useState<string[]>([]);
+  
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Chat State
   const [chatSession, setChatSession] = useState<Chat | null>(null);
@@ -33,6 +38,7 @@ export const AIOptimizer: React.FC = () => {
   const handleAnalyze = async () => {
     setLoading(true);
     setCompletedSuggestions([]);
+    setSelectedIds(new Set());
     try {
       const results = await analyzeCampaigns(MOCK_CAMPAIGNS, strategy);
       setSuggestions(results);
@@ -70,20 +76,52 @@ export const AIOptimizer: React.FC = () => {
     }
   };
 
-  const handleApplySuggestion = (index: number) => {
+  const handleApplySuggestion = (campaignId: string) => {
     // Optimistic UI update
-    setCompletedSuggestions(prev => [...prev, index.toString()]);
+    setCompletedSuggestions(prev => [...prev, campaignId]);
     
-    // In a real app, this would call an API to update the bid
+    // Simulate API delay
     setTimeout(() => {
-      // Simulate API delay
-      setSuggestions(prev => prev.filter((_, i) => i !== index));
-      setCompletedSuggestions(prev => prev.filter(id => id !== index.toString()));
+      setSuggestions(prev => prev.filter(s => s.campaignId !== campaignId));
+      setCompletedSuggestions(prev => prev.filter(id => id !== campaignId));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(campaignId);
+        return next;
+      });
+    }, 800);
+  };
+
+  const toggleSelection = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === suggestions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(suggestions.map(s => s.campaignId)));
+    }
+  };
+
+  const handleBulkApply = () => {
+    const idsToApply = Array.from(selectedIds);
+    // Mark all as completed for animation
+    setCompletedSuggestions(prev => [...prev, ...idsToApply]);
+
+    // Simulate batch processing delay
+    setTimeout(() => {
+        setSuggestions(prev => prev.filter(s => !selectedIds.has(s.campaignId)));
+        setCompletedSuggestions(prev => prev.filter(id => !selectedIds.has(id)));
+        setSelectedIds(new Set());
     }, 800);
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
       {/* Header Section */}
       <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50"></div>
@@ -143,12 +181,25 @@ export const AIOptimizer: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Left Column: Suggestions Feed */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-                    <Target className="text-indigo-600" size={20}/> 
-                    Strategic Actions
-                </h3>
+          <div className="space-y-6 relative">
+            <div className="flex items-center justify-between sticky top-0 bg-slate-50 z-10 py-2">
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={toggleSelectAll}
+                        className="text-slate-400 hover:text-indigo-600 transition-colors"
+                        title={selectedIds.size === suggestions.length ? "Deselect All" : "Select All"}
+                    >
+                        {selectedIds.size > 0 && selectedIds.size === suggestions.length ? (
+                            <CheckSquare size={20} className="text-indigo-600" />
+                        ) : (
+                            <Square size={20} />
+                        )}
+                    </button>
+                    <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                        <Target className="text-indigo-600" size={20}/> 
+                        Strategic Actions
+                    </h3>
+                </div>
                 <span className="text-xs font-medium px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md uppercase">
                     {strategy} Mode
                 </span>
@@ -162,16 +213,26 @@ export const AIOptimizer: React.FC = () => {
                   </div>
               )}
               {suggestions.map((item, index) => {
-                const isCompleted = completedSuggestions.includes(index.toString());
+                const isCompleted = completedSuggestions.includes(item.campaignId);
+                const isSelected = selectedIds.has(item.campaignId);
+
                 return (
                     <div 
-                    key={index} 
-                    className={`bg-white rounded-xl border border-slate-200 p-5 shadow-sm transition-all duration-500 ease-in-out ${
+                    key={item.campaignId} 
+                    className={`bg-white rounded-xl border transition-all duration-300 ease-in-out ${
                         isCompleted ? 'opacity-0 translate-x-10' : 'opacity-100'
-                    }`}
+                    } ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
                     >
-                    <div className="flex items-start gap-4">
-                        <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${item.suggestedAction.includes('INCREASE') ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                    <div className="p-5 flex items-start gap-4">
+                        <button 
+                            onClick={() => toggleSelection(item.campaignId)}
+                            className="mt-1 text-slate-300 hover:text-indigo-500 transition-colors"
+                        >
+                            {isSelected ? <CheckSquare size={20} className="text-indigo-600" /> : <Square size={20} />}
+                        </button>
+
+                        <div className={`mt-2 w-2 h-2 rounded-full flex-shrink-0 ${item.suggestedAction.includes('INCREASE') ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                        
                         <div className="flex-1 space-y-2">
                             <div className="flex justify-between items-start">
                                 <h4 className="font-semibold text-slate-900">{item.suggestion}</h4>
@@ -185,7 +246,7 @@ export const AIOptimizer: React.FC = () => {
                                     {item.suggestedAction.replace('_', ' ')}
                                 </span>
                                 <button 
-                                    onClick={() => handleApplySuggestion(index)}
+                                    onClick={() => handleApplySuggestion(item.campaignId)}
                                     className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center hover:underline"
                                 >
                                     Apply <ChevronRight size={14} className="ml-1"/>
@@ -197,10 +258,33 @@ export const AIOptimizer: React.FC = () => {
                 );
               })}
             </div>
+            
+            {/* Bulk Action Bar */}
+            <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 lg:translate-x-0 lg:left-auto lg:right-8 lg:w-[calc(50%-4rem)] z-30 transition-all duration-300 ${selectedIds.size > 0 ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+                <div className="bg-slate-900 text-white rounded-xl shadow-xl p-4 flex items-center justify-between border border-slate-700">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-indigo-600 rounded-lg p-2">
+                            <Zap size={20} className="text-white" />
+                        </div>
+                        <div>
+                            <div className="font-semibold">{selectedIds.size} Campaigns Selected</div>
+                            <div className="text-xs text-slate-400">Ready for batch optimization</div>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={handleBulkApply}
+                        className="bg-white text-slate-900 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-slate-100 transition-colors flex items-center gap-2"
+                    >
+                        Apply Unified Adjustments
+                        <ChevronRight size={14} />
+                    </button>
+                </div>
+            </div>
+
           </div>
 
           {/* Right Column: Chat Interface */}
-          <div className="flex flex-col h-[600px] bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex flex-col h-[600px] bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-8">
              <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
                 <MessageSquare className="text-indigo-600" size={18} />
                 <h3 className="font-semibold text-slate-800">Analyst Assistant</h3>
