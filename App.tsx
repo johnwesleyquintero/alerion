@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, BarChart3, Settings, Zap, Menu, X, Bell, User } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings, Zap, Menu, X, Bell, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AIOptimizer } from './components/AIOptimizer';
 
@@ -12,6 +12,7 @@ enum View {
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const renderContent = () => {
     switch (currentView) {
@@ -34,42 +35,64 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white fixed h-full z-10 transition-all">
-        <div className="p-6 border-b border-slate-800">
-          <div className="flex items-center space-x-3">
-             <img src="https://raw.githubusercontent.com/johnwesleyquintero/alerion/main/public/logo.svg" className="w-8 h-8 bg-white rounded-md p-1" alt="Logo" onError={(e) => { e.currentTarget.src = 'https://picsum.photos/32/32?grayscale' }} />
-             <span className="text-xl font-bold tracking-tight">Alerion</span>
+      <aside 
+        className={`hidden lg:flex flex-col bg-slate-900 text-white fixed h-full z-10 transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'w-20' : 'w-64'
+        }`}
+      >
+        <div className={`h-16 flex items-center border-b border-slate-800 transition-all duration-300 ${
+          isCollapsed ? 'justify-center px-0' : 'justify-start px-6'
+        }`}>
+          <div className="flex items-center space-x-3 overflow-hidden">
+             <img src="https://raw.githubusercontent.com/johnwesleyquintero/alerion/main/public/logo.svg" className="w-8 h-8 bg-white rounded-md p-1 min-w-[2rem]" alt="Logo" onError={(e) => { e.currentTarget.src = 'https://picsum.photos/32/32?grayscale' }} />
+             <span className={`text-xl font-bold tracking-tight whitespace-nowrap transition-opacity duration-300 ${
+               isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'
+             }`}>
+               Alerion
+             </span>
           </div>
         </div>
         
-        <nav className="flex-1 py-6 space-y-1 px-3">
+        <nav className="flex-1 py-6 space-y-2 px-3">
           <NavItem 
             active={currentView === View.DASHBOARD} 
             onClick={() => setCurrentView(View.DASHBOARD)}
             icon={<LayoutDashboard size={20} />}
             label="Dashboard"
+            collapsed={isCollapsed}
           />
           <NavItem 
             active={currentView === View.OPTIMIZER} 
             onClick={() => setCurrentView(View.OPTIMIZER)}
             icon={<Zap size={20} />}
             label="AI Optimizer"
+            collapsed={isCollapsed}
           />
            <NavItem 
             active={false}
             onClick={() => {}}
             icon={<BarChart3 size={20} />}
             label="Reporting"
+            collapsed={isCollapsed}
           />
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-3 border-t border-slate-800 space-y-2">
            <NavItem 
             active={currentView === View.SETTINGS} 
             onClick={() => setCurrentView(View.SETTINGS)}
             icon={<Settings size={20} />}
             label="Settings"
+            collapsed={isCollapsed}
           />
+          
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-white transition-colors mt-2"
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          </button>
         </div>
       </aside>
 
@@ -87,14 +110,16 @@ const App: React.FC = () => {
           <button onClick={() => setIsSidebarOpen(false)}><X size={24} /></button>
         </div>
         <nav className="p-4 space-y-2">
-          <NavItem active={currentView === View.DASHBOARD} onClick={() => { setCurrentView(View.DASHBOARD); setIsSidebarOpen(false); }} icon={<LayoutDashboard />} label="Dashboard" />
-          <NavItem active={currentView === View.OPTIMIZER} onClick={() => { setCurrentView(View.OPTIMIZER); setIsSidebarOpen(false); }} icon={<Zap />} label="AI Optimizer" />
-          <NavItem active={currentView === View.SETTINGS} onClick={() => { setCurrentView(View.SETTINGS); setIsSidebarOpen(false); }} icon={<Settings />} label="Settings" />
+          <NavItem active={currentView === View.DASHBOARD} onClick={() => { setCurrentView(View.DASHBOARD); setIsSidebarOpen(false); }} icon={<LayoutDashboard />} label="Dashboard" collapsed={false} />
+          <NavItem active={currentView === View.OPTIMIZER} onClick={() => { setCurrentView(View.OPTIMIZER); setIsSidebarOpen(false); }} icon={<Zap />} label="AI Optimizer" collapsed={false} />
+          <NavItem active={currentView === View.SETTINGS} onClick={() => { setCurrentView(View.SETTINGS); setIsSidebarOpen(false); }} icon={<Settings />} label="Settings" collapsed={false} />
         </nav>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+      }`}>
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-20 px-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -133,17 +158,34 @@ const App: React.FC = () => {
   );
 };
 
-const NavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+interface NavItemProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  collapsed: boolean;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ active, onClick, icon, label, collapsed }) => (
   <button 
     onClick={onClick}
-    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+    title={collapsed ? label : undefined}
+    className={`w-full flex items-center transition-colors rounded-lg ${
+      collapsed 
+        ? 'justify-center px-2 py-3' 
+        : 'space-x-3 px-4 py-3'
+    } ${
       active 
         ? 'bg-indigo-600 text-white' 
         : 'text-slate-400 hover:bg-slate-800 hover:text-white'
     }`}
   >
-    {icon}
-    <span className="font-medium text-sm">{label}</span>
+    <span className="flex-shrink-0">{icon}</span>
+    <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ${
+      collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
+    }`}>
+      {label}
+    </span>
   </button>
 );
 
