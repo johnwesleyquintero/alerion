@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
+  <!-- Icon: The Ascending Alerion Wing -->
+  <g>
+    <!-- Base Wing Part (Darker Indigo) -->
+    <path d="M16 8L2 40H14L24 18L16 8Z" fill="#4F46E5"/>
+    <!-- Ascending Arrow/Wing Part (Lighter Indigo) -->
+    <path d="M26 2L18 20L28 40H40L46 26L26 2Z" fill="#818CF8"/>
+    <!-- Central Pivot (Slate) -->
+    <path d="M18 20L14 40H28L18 20Z" fill="#1E293B" opacity="0.2"/>
+  </g>
+
+  <!-- Typography -->
+  <text x="56" y="32" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="28" fill="#0F172A" letter-spacing="-0.5">Alerion</text>
+  
+  <!-- Subtitle (Optional, adds Enterprise feel) -->
+  <text x="156" y="32" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="400" font-size="28" fill="#94A3B8">.</text>
+</svg>

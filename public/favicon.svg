@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Background Container (Optional, nice for rounded app icons) -->
+  <rect width="48" height="48" rx="12" fill="#F8FAFC" />
+  
+  <!-- Icon: The Ascending Alerion Wing (Centered and Scaled) -->
+  <g transform="translate(1 1)">
+     <!-- Base Wing Part -->
+    <path d="M16 8L2 40H14L24 18L16 8Z" fill="#4F46E5"/>
+    <!-- Ascending Arrow/Wing Part -->
+    <path d="M26 2L18 20L28 40H40L46 26L26 2Z" fill="#818CF8"/>
+    <!-- Shadow/Depth -->
+    <path d="M18 20L14 40H28L18 20Z" fill="#1E293B" opacity="0.2"/>
+  </g>
+</svg>
