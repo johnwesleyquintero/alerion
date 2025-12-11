@@ -37,6 +37,12 @@ export interface MarketInsight {
   metric?: string;
 }
 
+export interface ExecutiveBriefing {
+  headline: string;
+  summary: string;
+  actionItem: string;
+}
+
 export interface ChartDataPoint {
   date: string;
   spend: number;

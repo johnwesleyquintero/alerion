@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight, TrendingUp, Zap } from 'lucide-react';
 import { MOCK_CAMPAIGNS, MOCK_CHART_DATA } from '../constants';
 import { CampaignTable } from './CampaignTable';
-import { generateMarketInsights } from '../services/geminiService';
-import { MarketInsight } from '../types';
+import { CampaignDetailModal } from './CampaignDetailModal';
+import { generateMarketInsights, generateExecutiveBriefing } from '../services/geminiService';
+import { MarketInsight, ExecutiveBriefing, Campaign } from '../types';
 
 export const Dashboard: React.FC = () => {
   const [insights, setInsights] = useState<MarketInsight[]>([]);
+  const [briefing, setBriefing] = useState<ExecutiveBriefing | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
   // Aggregate mock totals
   const totalSpend = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.spend, 0);
@@ -19,12 +22,16 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    const fetchInsights = async () => {
-      const data = await generateMarketInsights(MOCK_CAMPAIGNS);
+    const fetchAI = async () => {
+      const [data, briefingData] = await Promise.all([
+          generateMarketInsights(MOCK_CAMPAIGNS),
+          generateExecutiveBriefing(MOCK_CAMPAIGNS)
+      ]);
       setInsights(data);
+      setBriefing(briefingData);
       setLoadingInsights(false);
     };
-    fetchInsights();
+    fetchAI();
   }, []);
 
   const getSentimentIcon = (sentiment: string) => {
@@ -44,7 +51,41 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
+      
+      {/* AI Executive Briefing - Morning Protocol */}
+      <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-1 shadow-lg shadow-indigo-500/10">
+        <div className="bg-slate-900/50 backdrop-blur-md rounded-xl p-6 md:p-8 border border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+            
+            <div className="relative z-10 flex flex-col md:flex-row gap-6 md:items-start">
+                <div className="bg-indigo-500/20 p-3 rounded-xl border border-indigo-500/30 w-fit h-fit">
+                    <Sparkles className="text-indigo-400 w-6 h-6" />
+                </div>
+                <div className="space-y-3 flex-1">
+                    {loadingInsights || !briefing ? (
+                         <div className="space-y-3 animate-pulse">
+                            <div className="h-6 bg-slate-700 rounded w-1/3"></div>
+                            <div className="h-4 bg-slate-800 rounded w-full"></div>
+                            <div className="h-4 bg-slate-800 rounded w-2/3"></div>
+                         </div>
+                    ) : (
+                        <>
+                            <h2 className="text-white text-2xl font-bold tracking-tight">{briefing.headline}</h2>
+                            <p className="text-slate-300 text-lg leading-relaxed max-w-3xl">
+                                {briefing.summary}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2 text-indigo-300 text-sm font-semibold bg-indigo-950/50 px-3 py-1.5 rounded-lg w-fit border border-indigo-500/20">
+                                <Zap size={14} className="fill-indigo-300" />
+                                Strategic Focus: {briefing.actionItem}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+      </div>
+
       {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard 
@@ -176,10 +217,9 @@ export const Dashboard: React.FC = () => {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col min-w-0 h-full">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-indigo-500 fill-indigo-50" />
-                        AI Insights
+                        <TrendingUp className="w-5 h-5 text-indigo-500" />
+                        Market Pulse
                     </h3>
-                    {loadingInsights && <span className="text-xs text-indigo-500 font-medium animate-pulse">Processing...</span>}
                 </div>
                 
                 <div className="space-y-4 flex-1">
@@ -203,7 +243,7 @@ export const Dashboard: React.FC = () => {
                                 </p>
                                 {insight.metric && (
                                     <div className="flex items-center text-xs font-bold opacity-90">
-                                        <TrendingUp size={12} className="mr-1" />
+                                        <Activity size={12} className="mr-1" />
                                         {insight.metric}
                                     </div>
                                 )}
@@ -226,8 +266,13 @@ export const Dashboard: React.FC = () => {
                 View All <ArrowRight size={16} />
             </button>
          </div>
-         <CampaignTable campaigns={MOCK_CAMPAIGNS} />
+         <CampaignTable campaigns={MOCK_CAMPAIGNS} onCampaignClick={setSelectedCampaign} />
       </div>
+
+      {/* Modals */}
+      {selectedCampaign && (
+          <CampaignDetailModal campaign={selectedCampaign} onClose={() => setSelectedCampaign(null)} />
+      )}
     </div>
   );
 };

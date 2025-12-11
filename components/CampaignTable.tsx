@@ -1,12 +1,13 @@
 import React from 'react';
 import { Campaign, CampaignStatus } from '../types';
-import { ArrowUpRight, ArrowDownRight, PauseCircle, PlayCircle, AlertCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, PauseCircle, PlayCircle, AlertCircle, ChevronRight } from 'lucide-react';
 
 interface CampaignTableProps {
   campaigns: Campaign[];
+  onCampaignClick?: (campaign: Campaign) => void;
 }
 
-export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => {
+export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampaignClick }) => {
   
   const getStatusColor = (status: CampaignStatus) => {
     switch (status) {
@@ -38,11 +39,16 @@ export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => {
             <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">Sales</th>
             <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">ACOS</th>
             <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">ROAS</th>
+            <th scope="col" className="px-4 py-4 w-10 bg-slate-50"></th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-slate-200">
           {campaigns.map((campaign) => (
-            <tr key={campaign.id} className="hover:bg-indigo-50/50 transition-colors group cursor-default">
+            <tr 
+                key={campaign.id} 
+                onClick={() => onCampaignClick && onCampaignClick(campaign)}
+                className="hover:bg-indigo-50/50 transition-colors group cursor-pointer border-l-4 border-transparent hover:border-indigo-500"
+            >
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-slate-900 group-hover:text-indigo-700 transition-colors">{campaign.name}</div>
                 <div className="text-xs text-slate-500">ID: {campaign.id}</div>
@@ -67,6 +73,9 @@ export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns }) => {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-600 font-mono">
                 {campaign.roas.toFixed(2)}x
+              </td>
+              <td className="px-4 py-4 text-right">
+                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors" />
               </td>
             </tr>
           ))}

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Chat } from "@google/genai";
-import { Campaign, OptimizationSuggestion, OptimizationStrategy, MarketInsight } from "../types";
+import { Campaign, OptimizationSuggestion, OptimizationStrategy, MarketInsight, ExecutiveBriefing } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
@@ -115,6 +115,53 @@ export const generateMarketInsights = async (campaigns: Campaign[]): Promise<Mar
     ];
   }
 }
+
+export const generateExecutiveBriefing = async (campaigns: Campaign[]): Promise<ExecutiveBriefing> => {
+    if (!apiKey) {
+        return {
+            headline: "Performance Remains Stable",
+            summary: "Campaigns are performing within expected KPIs. 'Kitchen Gadgets' continues to drive the majority of revenue.",
+            actionItem: "Review bid caps on 'Auto - Discovery' to restart impressions."
+        };
+    }
+
+    try {
+        const prompt = `
+          Act as a Chief Marketing Officer. Summarize the current Amazon Ads performance based on this data.
+          Write a punchy headline, a 2-sentence summary, and 1 key strategic action item for today.
+          Data: ${JSON.stringify(campaigns)}
+        `;
+    
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                headline: { type: Type.STRING },
+                summary: { type: Type.STRING },
+                actionItem: { type: Type.STRING }
+              },
+              required: ['headline', 'summary', 'actionItem']
+            }
+          }
+        });
+    
+        if (response.text) {
+          return JSON.parse(response.text) as ExecutiveBriefing;
+        }
+        throw new Error("No briefing data returned");
+      } catch (error) {
+        console.error("Briefing Gen Failed", error);
+         return {
+            headline: "System Offline",
+            summary: "Unable to generate real-time briefing. Please check API connectivity.",
+            actionItem: "Check system logs."
+        };
+      }
+};
 
 export const createCampaignChat = (campaigns: Campaign[], strategy: OptimizationStrategy): Chat => {
   const systemContext = `
