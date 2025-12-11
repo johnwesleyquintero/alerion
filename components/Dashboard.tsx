@@ -9,6 +9,7 @@ import { MarketInsight } from '../types';
 export const Dashboard: React.FC = () => {
   const [insights, setInsights] = useState<MarketInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Aggregate mock totals
   const totalSpend = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.spend, 0);
@@ -17,6 +18,9 @@ export const Dashboard: React.FC = () => {
   const avgAcos = (totalSpend / totalSales) * 100;
 
   useEffect(() => {
+    // Mark as mounted to ensure window/DOM is available for Recharts
+    setIsMounted(true);
+    
     const fetchInsights = async () => {
       const data = await generateMarketInsights(MOCK_CAMPAIGNS);
       setInsights(data);
@@ -77,29 +81,35 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-w-0">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Performance Trends</h3>
           {/* Added min-w-0 to the immediate parent of ResponsiveContainer */}
-          <div className="h-72 w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={MOCK_CHART_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                />
-                <Area type="monotone" dataKey="sales" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSales)" name="Sales" />
-                <Area type="monotone" dataKey="spend" stroke="#6366f1" fillOpacity={1} fill="url(#colorSpend)" name="Spend" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-72 w-full min-w-0 relative">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <AreaChart data={MOCK_CHART_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                  />
+                  <Area type="monotone" dataKey="sales" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSales)" name="Sales" />
+                  <Area type="monotone" dataKey="spend" stroke="#6366f1" fillOpacity={1} fill="url(#colorSpend)" name="Spend" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+               <div className="w-full h-full flex items-center justify-center bg-slate-50/50 rounded-lg animate-pulse">
+                  <Activity className="text-slate-300 w-8 h-8" />
+               </div>
+            )}
           </div>
         </div>
 
