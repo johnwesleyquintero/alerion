@@ -1,13 +1,58 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Campaign, CampaignStatus } from '../types';
-import { ArrowUpRight, ArrowDownRight, PauseCircle, PlayCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, PauseCircle, PlayCircle, AlertCircle, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface CampaignTableProps {
   campaigns: Campaign[];
   onCampaignClick?: (campaign: Campaign) => void;
 }
 
+type SortConfig = {
+  key: keyof Campaign;
+  direction: 'asc' | 'desc';
+} | null;
+
 export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampaignClick }) => {
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'sales', direction: 'desc' });
+
+  const sortedCampaigns = useMemo(() => {
+    if (!sortConfig) return campaigns;
+    
+    return [...campaigns].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [campaigns, sortConfig]);
+
+  const requestSort = (key: keyof Campaign) => {
+    let direction: 'asc' | 'desc' = 'desc'; // Default to desc for metrics usually
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: keyof Campaign) => {
+    if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="w-3 h-3 ml-1 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 ml-1 text-indigo-500" /> : <ArrowDown className="w-3 h-3 ml-1 text-indigo-500" />;
+  };
+
+  const HeaderCell = ({ label, sortKey, align = 'left' }: { label: string, sortKey: keyof Campaign, align?: 'left' | 'right' }) => (
+    <th 
+      scope="col" 
+      onClick={() => requestSort(sortKey)}
+      className={`px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider bg-slate-50 cursor-pointer select-none group hover:bg-slate-100 transition-colors ${align === 'right' ? 'text-right' : 'text-left'}`}
+    >
+      <div className={`flex items-center ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+        {label}
+        {getSortIcon(sortKey)}
+      </div>
+    </th>
+  );
   
   const getStatusColor = (status: CampaignStatus) => {
     switch (status) {
@@ -33,17 +78,17 @@ export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampa
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
           <tr>
-            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">Campaign Name</th>
-            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">Status</th>
-            <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">Spend</th>
-            <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">Sales</th>
-            <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">ACOS</th>
-            <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50">ROAS</th>
+            <HeaderCell label="Campaign Name" sortKey="name" />
+            <HeaderCell label="Status" sortKey="status" />
+            <HeaderCell label="Spend" sortKey="spend" align="right" />
+            <HeaderCell label="Sales" sortKey="sales" align="right" />
+            <HeaderCell label="ACOS" sortKey="acos" align="right" />
+            <HeaderCell label="ROAS" sortKey="roas" align="right" />
             <th scope="col" className="px-4 py-4 w-10 bg-slate-50"></th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-slate-200">
-          {campaigns.map((campaign) => (
+          {sortedCampaigns.map((campaign) => (
             <tr 
                 key={campaign.id} 
                 onClick={() => onCampaignClick && onCampaignClick(campaign)}

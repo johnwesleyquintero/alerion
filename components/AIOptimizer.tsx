@@ -10,6 +10,12 @@ interface ChatMessage {
   text: string;
 }
 
+const QUICK_PROMPTS = [
+  { text: "📉 Reduce High ACOS", prompt: "Identify campaigns with ACOS above 30% and suggest immediate bid adjustments." },
+  { text: "🚀 Scale Winners", prompt: "Which campaigns have a ROAS above 3.0? How can we scale them?" },
+  { text: "💸 Audit Wasted Spend", prompt: "Find keywords with high spend but zero sales." },
+];
+
 export const AIOptimizer: React.FC = () => {
   const [strategy, setStrategy] = useState<OptimizationStrategy>('BALANCED');
   const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
@@ -55,17 +61,18 @@ export const AIOptimizer: React.FC = () => {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim() || !chatSession) return;
+  const handleSendMessage = async (e?: React.FormEvent, manualText?: string) => {
+    if (e) e.preventDefault();
+    const textToSend = manualText || inputMessage;
+    
+    if (!textToSend.trim() || !chatSession) return;
 
-    const userText = inputMessage;
     setInputMessage('');
-    setMessages(prev => [...prev, { role: 'user', text: userText }]);
+    setMessages(prev => [...prev, { role: 'user', text: textToSend }]);
     setIsChatting(true);
 
     try {
-      const response: GenerateContentResponse = await chatSession.sendMessage({ message: userText });
+      const response: GenerateContentResponse = await chatSession.sendMessage({ message: textToSend });
       const modelText = response.text || "I couldn't process that request.";
       setMessages(prev => [...prev, { role: 'model', text: modelText }]);
     } catch (error) {
@@ -350,8 +357,23 @@ export const AIOptimizer: React.FC = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 bg-white border-t border-slate-200">
-                    <form onSubmit={handleSendMessage} className="relative group">
+                <div className="p-4 bg-white border-t border-slate-200 space-y-3">
+                    {/* Quick Prompts */}
+                    {!isChatting && (
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                        {QUICK_PROMPTS.map((prompt, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSendMessage(undefined, prompt.prompt)}
+                            className="flex-shrink-0 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100 transition-colors whitespace-nowrap"
+                          >
+                            {prompt.text}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <form onSubmit={(e) => handleSendMessage(e)} className="relative group">
                         <input
                             type="text"
                             value={inputMessage}
