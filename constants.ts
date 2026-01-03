@@ -64,3 +64,38 @@ export const MOCK_CHART_DATA: ChartDataPoint[] = [
   { date: 'Sat', spend: 230, sales: 900, acos: 25.5 },
   { date: 'Sun', spend: 210, sales: 850, acos: 24.7 },
 ];
+
+// Simulator to generate "new" data when a file is uploaded
+export const generateNewCampaignData = (): Campaign[] => {
+  const statuses = [CampaignStatus.ACTIVE, CampaignStatus.PAUSED, CampaignStatus.ARCHIVED, CampaignStatus.OUT_OF_BUDGET];
+  const newCampaigns: Campaign[] = [];
+  
+  const names = [
+    "Q4 Holiday - Exact", "Core Branded Keywords", "Competitor Conquesting", "Auto - Catchall",
+    "Video Ads - Top of Search", "Sponsored Display - Remarketing", "Category - Home & Kitchen",
+    "New Product Launch - Broad", "Defensive - ASIN Targeting", "Low Bid - Discovery"
+  ];
+
+  names.forEach((name, i) => {
+    const spend = Math.random() * 5000 + 100;
+    const roas = Math.random() * 6 + 0.5; // Random ROAS between 0.5 and 6.5
+    const sales = spend * roas;
+    const acos = (spend / sales) * 100;
+    
+    newCampaigns.push({
+      id: `cmp_${Date.now()}_${i}`,
+      name: name,
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      budget: Math.floor(Math.random() * 200) + 20,
+      spend: Number(spend.toFixed(2)),
+      sales: Number(sales.toFixed(2)),
+      acos: Number(acos.toFixed(2)),
+      roas: Number(roas.toFixed(2)),
+      impressions: Math.floor(spend * (Math.random() * 20 + 10)),
+      clicks: Math.floor(spend / (Math.random() * 2 + 0.5)),
+      ctr: Number((Math.random() * 4 + 0.2).toFixed(2))
+    });
+  });
+
+  return newCampaigns;
+};

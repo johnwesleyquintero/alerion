@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeCampaigns, createCampaignChat } from '../services/geminiService';
-import { MOCK_CAMPAIGNS } from '../constants';
-import { OptimizationSuggestion, OptimizationStrategy, AppSettings } from '../types';
-import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check, Square, CheckSquare, Zap, User, BarChart2 } from 'lucide-react';
+import { OptimizationSuggestion, OptimizationStrategy, AppSettings, Campaign } from '../types';
+import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check, Square, CheckSquare, Zap, User, BarChart2, AlertCircle, Info, Clock } from 'lucide-react';
 import { Chat, GenerateContentResponse } from "@google/genai";
 
 interface ChatMessage {
@@ -12,6 +11,7 @@ interface ChatMessage {
 
 interface AIOptimizerProps {
   settings: AppSettings;
+  campaigns: Campaign[]; // Now accepts campaigns from parent
 }
 
 const QUICK_PROMPTS = [
@@ -20,11 +20,18 @@ const QUICK_PROMPTS = [
   { text: "💸 Audit Wasted Spend", prompt: "Find keywords with high spend but zero sales." },
 ];
 
-export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
+const STRATEGY_INFO = {
+    PROFITABILITY: "Aggressive cost-cutting. Targets strict ACOS limits. Ideal for mature products or low-inventory scenarios.",
+    BALANCED: "The sweet spot. Optimizes for sustainable growth while maintaining healthy margins. Removes waste, fuels winners.",
+    GROWTH: "Prioritizes market share & impressions. Tolerates higher ACOS to dominate search results and launch new products."
+};
+
+export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings, campaigns }) => {
   const [strategy, setStrategy] = useState<OptimizationStrategy>('BALANCED');
   const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
+  const [lastAnalysisTime, setLastAnalysisTime] = useState<Date | null>(null);
   
   // Track completed IDs
   const [completedSuggestions, setCompletedSuggestions] = useState<string[]>([]);
@@ -51,12 +58,14 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
     setSelectedIds(new Set());
     try {
       // Pass the user's Target ACOS to the service
-      const results = await analyzeCampaigns(MOCK_CAMPAIGNS, strategy, settings.targetAcos);
+      // Uses the 'campaigns' prop which is the active dataset (likely uploaded)
+      const results = await analyzeCampaigns(campaigns, strategy, settings.targetAcos);
       setSuggestions(results);
+      setLastAnalysisTime(new Date());
       
-      const chat = createCampaignChat(MOCK_CAMPAIGNS, strategy);
+      const chat = createCampaignChat(campaigns, strategy);
       setChatSession(chat);
-      setMessages([{ role: 'model', text: `Analysis Complete. I've reviewed ${MOCK_CAMPAIGNS.length} campaigns focusing on a ${strategy.toLowerCase()} strategy using a Target ACOS of ${settings.targetAcos}%. I found ${results.length} optimization opportunities.` }]);
+      setMessages([{ role: 'model', text: `Analysis Complete. I've reviewed ${campaigns.length} campaigns focusing on a ${strategy.toLowerCase()} strategy using a Target ACOS of ${settings.targetAcos}%. I found ${results.length} optimization opportunities.` }]);
       
       setAnalyzed(true);
     } catch (error) {
@@ -142,11 +151,11 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
                 </div>
                 <h2 className="text-3xl font-bold text-slate-900 mb-3">Optimize Campaign Performance</h2>
                 <p className="text-slate-600 text-lg">
-                    Select your objective. Alerion will analyze your data against your <strong>{settings.targetAcos}% ACOS Target</strong>, identifying inefficiencies and growth opportunities instantly.
+                    Select your objective. Alerion will analyze your <strong>{campaigns.length} active campaigns</strong> against your <strong>{settings.targetAcos}% ACOS Target</strong>, identifying inefficiencies and growth opportunities instantly.
                 </p>
             </div>
 
-            <div className="flex flex-col gap-4 min-w-[300px]">
+            <div className="flex flex-col gap-4 min-w-[340px]">
                  <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                     {(['PROFITABILITY', 'BALANCED', 'GROWTH'] as OptimizationStrategy[]).map((s) => (
                         <button 
@@ -164,6 +173,12 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
                             <span className="capitalize">{s.toLowerCase()}</span>
                         </button>
                     ))}
+                 </div>
+                 
+                 {/* Strategy Description Tooltip Area */}
+                 <div className="bg-slate-50/80 px-4 py-3 rounded-xl border border-slate-100 text-xs text-slate-500 flex gap-2 items-start leading-relaxed min-h-[60px]">
+                     <Info size={14} className="mt-0.5 shrink-0 text-indigo-400" />
+                     {STRATEGY_INFO[strategy]}
                  </div>
                  
                  <button
@@ -205,11 +220,19 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
                             <Square size={22} />
                         )}
                     </button>
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        Strategic Actions
-                        <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full">{suggestions.length}</span>
-                    </h3>
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            Strategic Actions
+                            <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full">{suggestions.length}</span>
+                        </h3>
+                    </div>
                 </div>
+                {lastAnalysisTime && (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
+                        <Clock size={12} />
+                        Analyzed: {lastAnalysisTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                )}
             </div>
             
             <div className="space-y-4 pb-24">
@@ -226,6 +249,7 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
                 const isCompleted = completedSuggestions.includes(item.campaignId);
                 const isSelected = selectedIds.has(item.campaignId);
                 const isIncrease = item.suggestedAction.includes('INCREASE');
+                const isHighRisk = item.currentAcos > settings.targetAcos;
 
                 return (
                     <div 
@@ -253,6 +277,28 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
                                 </div>
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isIncrease ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                                     {isIncrease ? <TrendingUp size={16} /> : <Target size={16} />}
+                                </div>
+                            </div>
+
+                            {/* Visual Risk Bar */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden relative border border-slate-200">
+                                    {/* Target Marker Line */}
+                                    <div 
+                                        className="absolute top-0 bottom-0 w-0.5 bg-slate-800 z-10" 
+                                        style={{ left: `${Math.min((settings.targetAcos / 100) * 100, 100)}%` }}
+                                        title={`Target ACOS: ${settings.targetAcos}%`}
+                                    ></div>
+                                    
+                                    {/* Actual Bar */}
+                                    <div 
+                                        className={`h-full rounded-full ${isHighRisk ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                        style={{ width: `${Math.min(item.currentAcos, 100)}%` }}
+                                    ></div>
+                                </div>
+                                <div className="text-xs font-bold text-slate-600 w-24 text-right">
+                                    <span className={isHighRisk ? "text-red-600" : "text-emerald-600"}>{item.currentAcos.toFixed(1)}%</span> 
+                                    <span className="text-slate-400 font-normal"> / {settings.targetAcos}% ACOS</span>
                                 </div>
                             </div>
                             

@@ -33,6 +33,7 @@ export interface OptimizationSuggestion {
   suggestion: string;
   reasoning: string;
   suggestedAction: 'INCREASE_BID' | 'DECREASE_BID' | 'PAUSE_KEYWORD' | 'ADD_NEGATIVE';
+  currentAcos: number; // Added for visual context
   value?: number;
 }
 

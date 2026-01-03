@@ -51,9 +51,10 @@ export const analyzeCampaigns = async (campaigns: Campaign[], strategy: Optimiza
               suggestion: { type: Type.STRING },
               reasoning: { type: Type.STRING },
               suggestedAction: { type: Type.STRING, enum: ['INCREASE_BID', 'DECREASE_BID', 'PAUSE_KEYWORD', 'ADD_NEGATIVE'] },
+              currentAcos: { type: Type.NUMBER, description: "The current ACOS of the campaign" },
               value: { type: Type.NUMBER, nullable: true }
             },
-            required: ['campaignId', 'campaignName', 'suggestion', 'reasoning', 'suggestedAction']
+            required: ['campaignId', 'campaignName', 'suggestion', 'reasoning', 'suggestedAction', 'currentAcos']
           }
         }
       }
@@ -201,6 +202,7 @@ const mockAnalysis = (campaigns: Campaign[], targetAcos: number): OptimizationSu
         suggestion: "High ACOS detected. Reduce bids.",
         reasoning: `ACOS is at ${c.acos.toFixed(2)}%, which is above the ${targetAcos}% target.`,
         suggestedAction: 'DECREASE_BID',
+        currentAcos: c.acos,
         value: 0.15
       };
     } else {
@@ -210,6 +212,7 @@ const mockAnalysis = (campaigns: Campaign[], targetAcos: number): OptimizationSu
         suggestion: "Strong performance. Increase budget to scale.",
         reasoning: `ROAS is healthy at ${c.roas.toFixed(2)}. Opportunity to capture more traffic.`,
         suggestedAction: 'INCREASE_BID',
+        currentAcos: c.acos,
         value: 0.20
       };
     }

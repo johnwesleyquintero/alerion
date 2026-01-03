@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight, TrendingUp, Zap } from 'lucide-react';
-import { MOCK_CAMPAIGNS, MOCK_CHART_DATA } from '../constants';
+import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingCart, Percent, Activity, Sparkles, AlertTriangle, CheckCircle, ArrowRight, TrendingUp, Zap, Clock } from 'lucide-react';
+import { MOCK_CHART_DATA } from '../constants';
 import { CampaignTable } from './CampaignTable';
 import { CampaignDetailModal } from './CampaignDetailModal';
 import { generateMarketInsights, generateExecutiveBriefing } from '../services/geminiService';
 import { MarketInsight, ExecutiveBriefing, Campaign, CampaignStatus } from '../types';
+
+interface DashboardProps {
+  campaigns: Campaign[];
+  onCampaignUpdate: (updatedCampaigns: Campaign[]) => void;
+  lastUpdated?: Date;
+}
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -49,17 +55,14 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export const Dashboard: React.FC = () => {
+export const Dashboard: React.FC<DashboardProps> = ({ campaigns, onCampaignUpdate, lastUpdated }) => {
   const [insights, setInsights] = useState<MarketInsight[]>([]);
   const [briefing, setBriefing] = useState<ExecutiveBriefing | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  
-  // State for Campaigns to allow mutations (Optimistic UI)
-  const [campaigns, setCampaigns] = useState<Campaign[]>(MOCK_CAMPAIGNS);
 
-  // Aggregates based on CURRENT state (so they update when you change table data)
+  // Aggregates based on CURRENT props (sourced from upload or initial state)
   const totalSpend = campaigns.reduce((acc, c) => acc + c.spend, 0);
   const totalSales = campaigns.reduce((acc, c) => acc + c.sales, 0);
   const totalImpressions = campaigns.reduce((acc, c) => acc + c.impressions, 0);
@@ -68,22 +71,18 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     setIsMounted(true);
     const fetchAI = async () => {
-      // In a real app, we would pass the dynamic 'campaigns' state here, 
-      // but for initial load speed we use the constant or cached data
+      setLoadingInsights(true);
+      // Pass the dynamic 'campaigns' prop here so the AI analyzes the ACTUAL uploaded data
       const [data, briefingData] = await Promise.all([
-          generateMarketInsights(MOCK_CAMPAIGNS),
-          generateExecutiveBriefing(MOCK_CAMPAIGNS)
+          generateMarketInsights(campaigns),
+          generateExecutiveBriefing(campaigns)
       ]);
       setInsights(data);
       setBriefing(briefingData);
       setLoadingInsights(false);
     };
     fetchAI();
-  }, []);
-
-  const handleCampaignUpdate = (updatedCampaigns: Campaign[]) => {
-      setCampaigns(updatedCampaigns);
-  };
+  }, [campaigns]); // Re-run AI when campaigns change (e.g., after upload)
 
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
@@ -122,7 +121,15 @@ export const Dashboard: React.FC = () => {
                          </div>
                     ) : (
                         <>
-                            <h2 className="text-white text-2xl font-bold tracking-tight">{briefing.headline}</h2>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-white text-2xl font-bold tracking-tight">{briefing.headline}</h2>
+                                {lastUpdated && (
+                                    <div className="flex items-center gap-1.5 text-xs font-medium text-indigo-300 bg-indigo-950/30 px-2 py-1 rounded border border-indigo-500/10">
+                                        <Clock size={12} />
+                                        Data as of: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                )}
+                            </div>
                             <p className="text-slate-300 text-lg leading-relaxed max-w-3xl">
                                 {briefing.summary}
                             </p>
@@ -240,7 +247,7 @@ export const Dashboard: React.FC = () => {
             <div className="h-60 w-full min-w-0 relative">
                {isMounted && (
                  <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={campaigns} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+                   <BarChart data={campaigns.slice(0, 10)} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                       <XAxis type="number" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
                       <YAxis dataKey="name" type="category" width={100} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => val.length > 15 ? val.substring(0, 15) + '...' : val} />
@@ -303,11 +310,11 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Tables Section - Passing state and handler for updates */}
+      {/* Tables Section - Passing props */}
       <CampaignTable 
         campaigns={campaigns} 
         onCampaignClick={setSelectedCampaign} 
-        onCampaignUpdate={handleCampaignUpdate}
+        onCampaignUpdate={onCampaignUpdate}
       />
 
       {/* Modals */}
