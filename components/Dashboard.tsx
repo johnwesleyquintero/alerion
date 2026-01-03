@@ -5,7 +5,49 @@ import { MOCK_CAMPAIGNS, MOCK_CHART_DATA } from '../constants';
 import { CampaignTable } from './CampaignTable';
 import { CampaignDetailModal } from './CampaignDetailModal';
 import { generateMarketInsights, generateExecutiveBriefing } from '../services/geminiService';
-import { MarketInsight, ExecutiveBriefing, Campaign } from '../types';
+import { MarketInsight, ExecutiveBriefing, Campaign, CampaignStatus } from '../types';
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}
+
+// Custom Tooltip Component for Recharts
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const sales = payload.find((p: any) => p.dataKey === 'sales')?.value || 0;
+    const spend = payload.find((p: any) => p.dataKey === 'spend')?.value || 0;
+    const acos = sales > 0 ? (spend / sales) * 100 : 0;
+
+    return (
+      <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl text-white min-w-[180px]">
+        <p className="text-slate-400 text-xs font-semibold uppercase mb-2 tracking-wider">{label}</p>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-sm font-medium text-blue-400 flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div> Sales
+            </span>
+            <span className="font-mono font-bold">${sales.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+             <span className="text-sm font-medium text-indigo-400 flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-indigo-500"></div> Spend
+            </span>
+            <span className="font-mono font-bold">${spend.toLocaleString()}</span>
+          </div>
+          <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between items-center">
+             <span className="text-xs font-medium text-slate-400">Daily ACOS</span>
+             <span className={`font-mono font-bold text-sm ${acos > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
+               {acos.toFixed(1)}%
+             </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export const Dashboard: React.FC = () => {
   const [insights, setInsights] = useState<MarketInsight[]>([]);
@@ -13,16 +55,21 @@ export const Dashboard: React.FC = () => {
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  
+  // State for Campaigns to allow mutations (Optimistic UI)
+  const [campaigns, setCampaigns] = useState<Campaign[]>(MOCK_CAMPAIGNS);
 
-  // Aggregate mock totals
-  const totalSpend = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.spend, 0);
-  const totalSales = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.sales, 0);
-  const totalImpressions = MOCK_CAMPAIGNS.reduce((acc, c) => acc + c.impressions, 0);
-  const avgAcos = (totalSpend / totalSales) * 100;
+  // Aggregates based on CURRENT state (so they update when you change table data)
+  const totalSpend = campaigns.reduce((acc, c) => acc + c.spend, 0);
+  const totalSales = campaigns.reduce((acc, c) => acc + c.sales, 0);
+  const totalImpressions = campaigns.reduce((acc, c) => acc + c.impressions, 0);
+  const avgAcos = totalSales > 0 ? (totalSpend / totalSales) * 100 : 0;
 
   useEffect(() => {
     setIsMounted(true);
     const fetchAI = async () => {
+      // In a real app, we would pass the dynamic 'campaigns' state here, 
+      // but for initial load speed we use the constant or cached data
       const [data, briefingData] = await Promise.all([
           generateMarketInsights(MOCK_CAMPAIGNS),
           generateExecutiveBriefing(MOCK_CAMPAIGNS)
@@ -33,6 +80,10 @@ export const Dashboard: React.FC = () => {
     };
     fetchAI();
   }, []);
+
+  const handleCampaignUpdate = (updatedCampaigns: Campaign[]) => {
+      setCampaigns(updatedCampaigns);
+  };
 
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
@@ -90,7 +141,7 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard 
           title="Total Sales" 
-          value={`$${totalSales.toLocaleString()}`} 
+          value={`$${totalSales.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} 
           trend="+12.5%" 
           icon={<ShoppingCart className="text-white w-5 h-5" />}
           gradient="from-blue-500 to-blue-600"
@@ -98,7 +149,7 @@ export const Dashboard: React.FC = () => {
         />
         <KPICard 
           title="Ad Spend" 
-          value={`$${totalSpend.toLocaleString()}`} 
+          value={`$${totalSpend.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} 
           trend="-2.1%" 
           trendGood={true}
           icon={<DollarSign className="text-white w-5 h-5" />}
@@ -164,12 +215,9 @@ export const Dashboard: React.FC = () => {
                       <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        itemStyle={{ fontSize: '12px', fontWeight: 600 }}
-                      />
-                      <Area type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" name="Sales" />
-                      <Area type="monotone" dataKey="spend" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSpend)" name="Spend" />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }} />
+                      <Area type="monotone" dataKey="spend" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSpend)" activeDot={{ r: 6, strokeWidth: 0, fill: '#6366f1' }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -181,7 +229,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Campaign Comparison Chart (New) */}
+          {/* Campaign Efficiency Chart */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-w-0">
             <div className="flex justify-between items-center mb-6">
                 <div>
@@ -192,7 +240,7 @@ export const Dashboard: React.FC = () => {
             <div className="h-60 w-full min-w-0 relative">
                {isMounted && (
                  <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={MOCK_CAMPAIGNS} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+                   <BarChart data={campaigns} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                       <XAxis type="number" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
                       <YAxis dataKey="name" type="category" width={100} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => val.length > 15 ? val.substring(0, 15) + '...' : val} />
@@ -255,8 +303,12 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Tables Section - Just the Table now, title is inside component */}
-      <CampaignTable campaigns={MOCK_CAMPAIGNS} onCampaignClick={setSelectedCampaign} />
+      {/* Tables Section - Passing state and handler for updates */}
+      <CampaignTable 
+        campaigns={campaigns} 
+        onCampaignClick={setSelectedCampaign} 
+        onCampaignUpdate={handleCampaignUpdate}
+      />
 
       {/* Modals */}
       {selectedCampaign && (

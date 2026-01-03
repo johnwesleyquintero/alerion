@@ -5,6 +5,7 @@ import { ArrowUpRight, ArrowDownRight, PauseCircle, PlayCircle, AlertCircle, Che
 interface CampaignTableProps {
   campaigns: Campaign[];
   onCampaignClick?: (campaign: Campaign) => void;
+  onCampaignUpdate?: (updatedCampaigns: Campaign[]) => void;
 }
 
 type SortConfig = {
@@ -12,7 +13,7 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 } | null;
 
-export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampaignClick }) => {
+export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampaignClick, onCampaignUpdate }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'sales', direction: 'desc' });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | 'ALL'>('ALL');
@@ -101,9 +102,31 @@ export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampa
     setSelectedIds(next);
   };
 
-  const handleBulkAction = (action: string) => {
-      // Mock action execution
-      console.log(`Executing ${action} on ${selectedIds.size} items`);
+  const handleBulkAction = (action: 'DECREASE_BID' | 'INCREASE_BID' | 'PAUSE') => {
+      if (!onCampaignUpdate) return;
+
+      const updatedCampaigns = campaigns.map(c => {
+          if (selectedIds.has(c.id)) {
+              if (action === 'PAUSE') {
+                  return { ...c, status: CampaignStatus.PAUSED };
+              }
+              if (action === 'DECREASE_BID') {
+                  // Simulate 10% spend reduction and recalculate ACOS
+                  const newSpend = c.spend * 0.9;
+                  const newAcos = (newSpend / c.sales) * 100;
+                  return { ...c, spend: newSpend, acos: Number(newAcos.toFixed(2)) };
+              }
+              if (action === 'INCREASE_BID') {
+                  // Simulate 10% spend increase
+                   const newSpend = c.spend * 1.1;
+                   const newAcos = (newSpend / c.sales) * 100;
+                   return { ...c, spend: newSpend, acos: Number(newAcos.toFixed(2)) };
+              }
+          }
+          return c;
+      });
+
+      onCampaignUpdate(updatedCampaigns);
       setSelectedIds(new Set());
   };
 
@@ -212,7 +235,7 @@ export const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, onCampa
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                      <div className={`flex items-center justify-end font-medium ${campaign.acos > 30 ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {campaign.acos}%
+                        {campaign.acos.toFixed(2)}%
                         {campaign.acos > 30 ? <ArrowUpRight className="w-3 h-3 ml-1" /> : <ArrowDownRight className="w-3 h-3 ml-1" />}
                      </div>
                   </td>
