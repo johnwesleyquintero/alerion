@@ -439,7 +439,7 @@ const App: React.FC = () => {
              
              <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
                 <div className="text-right hidden md:block leading-tight">
-                   <div className="text-sm font-bold text-slate-900">John Wesley</div>
+                   <div className="text-sm font-bold text-slate-900">Wesley Q</div>
                    <div className="text-xs text-slate-500 font-medium">Administrator</div>
                 </div>
                 <button className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors">
