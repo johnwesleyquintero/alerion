@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeCampaigns, createCampaignChat } from '../services/geminiService';
 import { OptimizationSuggestion, OptimizationStrategy, AppSettings, Campaign } from '../types';
-import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check, Square, CheckSquare, Zap, User, BarChart2, AlertCircle, Info, Clock } from 'lucide-react';
+import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check, Square, CheckSquare, Zap, User, BarChart2, AlertCircle, Info, Clock, History, FileText } from 'lucide-react';
 import { Chat, GenerateContentResponse } from "@google/genai";
 
 interface ChatMessage {
@@ -12,6 +12,11 @@ interface ChatMessage {
 interface AIOptimizerProps {
   settings: AppSettings;
   campaigns: Campaign[]; // Now accepts campaigns from parent
+}
+
+interface ActionLogItem extends OptimizationSuggestion {
+    timestamp: Date;
+    appliedStrategy: OptimizationStrategy;
 }
 
 const QUICK_PROMPTS = [
@@ -33,8 +38,10 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings, campaigns })
   const [analyzed, setAnalyzed] = useState(false);
   const [lastAnalysisTime, setLastAnalysisTime] = useState<Date | null>(null);
   
-  // Track completed IDs
+  // Track completed IDs and History
   const [completedSuggestions, setCompletedSuggestions] = useState<string[]>([]);
+  const [actionHistory, setActionHistory] = useState<ActionLogItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -96,7 +103,19 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings, campaigns })
     }
   };
 
+  const logAction = (item: OptimizationSuggestion) => {
+      const logItem: ActionLogItem = {
+          ...item,
+          timestamp: new Date(),
+          appliedStrategy: strategy
+      };
+      setActionHistory(prev => [logItem, ...prev]);
+  };
+
   const handleApplySuggestion = (campaignId: string) => {
+    const item = suggestions.find(s => s.campaignId === campaignId);
+    if (item) logAction(item);
+
     setCompletedSuggestions(prev => [...prev, campaignId]);
     setTimeout(() => {
       setSuggestions(prev => prev.filter(s => s.campaignId !== campaignId));
@@ -126,6 +145,13 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings, campaigns })
 
   const handleBulkApply = () => {
     const idsToApply = Array.from(selectedIds);
+    
+    // Log all
+    idsToApply.forEach(id => {
+        const item = suggestions.find(s => s.campaignId === id);
+        if (item) logAction(item);
+    });
+
     setCompletedSuggestions(prev => [...prev, ...idsToApply]);
 
     setTimeout(() => {
@@ -227,123 +253,163 @@ export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings, campaigns })
                         </h3>
                     </div>
                 </div>
-                {lastAnalysisTime && (
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
-                        <Clock size={12} />
-                        Analyzed: {lastAnalysisTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                )}
-            </div>
-            
-            <div className="space-y-4 pb-24">
-              {suggestions.length === 0 && (
-                  <div className="text-center p-12 bg-white rounded-2xl border border-slate-200 border-dashed text-slate-500">
-                      <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Check className="w-8 h-8 text-emerald-500" />
-                      </div>
-                      <h4 className="text-lg font-semibold text-slate-900 mb-1">Optimization Complete</h4>
-                      <p>All actionable insights have been applied.</p>
-                  </div>
-              )}
-              {suggestions.map((item) => {
-                const isCompleted = completedSuggestions.includes(item.campaignId);
-                const isSelected = selectedIds.has(item.campaignId);
-                const isIncrease = item.suggestedAction.includes('INCREASE');
-                const isHighRisk = item.currentAcos > settings.targetAcos;
-
-                return (
-                    <div 
-                    key={item.campaignId} 
-                    className={`bg-white rounded-xl border transition-all duration-300 ease-in-out group hover:shadow-md ${
-                        isCompleted ? 'opacity-0 translate-x-full' : 'opacity-100'
-                    } ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 shadow-md bg-indigo-50/10' : 'border-slate-200 shadow-sm'}`}
+                <div className="flex gap-3">
+                    {lastAnalysisTime && (
+                        <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
+                            <Clock size={12} />
+                            Analyzed: {lastAnalysisTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
+                     <button 
+                        onClick={() => setShowHistory(!showHistory)}
+                        className={`flex items-center gap-1.5 text-xs font-bold uppercase px-3 py-1.5 rounded-lg border transition-all ${showHistory ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
                     >
-                    <div className="p-5 flex items-start gap-4">
-                        <button 
-                            onClick={() => toggleSelection(item.campaignId)}
-                            className="mt-1 text-slate-300 hover:text-indigo-500 transition-colors"
-                        >
-                            {isSelected ? <CheckSquare size={20} className="text-indigo-600" /> : <Square size={20} />}
-                        </button>
-
-                        <div className="flex-1 space-y-3">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-lg leading-tight mb-1">{item.suggestion}</h4>
-                                    <div className="flex items-center gap-2">
-                                        <BarChart2 size={12} className="text-slate-400"/>
-                                        <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">{item.campaignName}</span>
-                                    </div>
-                                </div>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isIncrease ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                    {isIncrease ? <TrendingUp size={16} /> : <Target size={16} />}
-                                </div>
-                            </div>
-
-                            {/* Visual Risk Bar */}
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden relative border border-slate-200">
-                                    {/* Target Marker Line */}
-                                    <div 
-                                        className="absolute top-0 bottom-0 w-0.5 bg-slate-800 z-10" 
-                                        style={{ left: `${Math.min((settings.targetAcos / 100) * 100, 100)}%` }}
-                                        title={`Target ACOS: ${settings.targetAcos}%`}
-                                    ></div>
-                                    
-                                    {/* Actual Bar */}
-                                    <div 
-                                        className={`h-full rounded-full ${isHighRisk ? 'bg-red-500' : 'bg-emerald-500'}`} 
-                                        style={{ width: `${Math.min(item.currentAcos, 100)}%` }}
-                                    ></div>
-                                </div>
-                                <div className="text-xs font-bold text-slate-600 w-24 text-right">
-                                    <span className={isHighRisk ? "text-red-600" : "text-emerald-600"}>{item.currentAcos.toFixed(1)}%</span> 
-                                    <span className="text-slate-400 font-normal"> / {settings.targetAcos}% ACOS</span>
-                                </div>
-                            </div>
-                            
-                            <p className="text-slate-600 text-sm leading-relaxed bg-slate-50 p-3.5 rounded-lg border border-slate-100">
-                                {item.reasoning}
-                            </p>
-                            
-                            <div className="pt-2 flex items-center justify-between border-t border-slate-100 mt-2">
-                                <span className={`text-xs font-bold px-2.5 py-1 rounded-md border uppercase tracking-wide ${isIncrease ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                                    {item.suggestedAction.replace('_', ' ')}
-                                </span>
-                                <button 
-                                    onClick={() => handleApplySuggestion(item.campaignId)}
-                                    className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    Apply Action <ChevronRight size={14} className="ml-1"/>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                );
-              })}
-            </div>
-            
-            {/* Bulk Action Bar */}
-            <div className={`fixed bottom-8 left-1/2 lg:left-[45%] transform -translate-x-1/2 z-30 transition-all duration-300 ${selectedIds.size > 0 ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95'}`}>
-                <div className="bg-slate-900 text-white rounded-2xl shadow-2xl p-3 pl-4 pr-3 flex items-center gap-6 border border-slate-700">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-indigo-500 rounded-lg p-1.5 animate-pulse">
-                            <Zap size={18} className="text-white" />
-                        </div>
-                        <div>
-                            <div className="font-bold text-sm">{selectedIds.size} Changes Queued</div>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={handleBulkApply}
-                        className="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors flex items-center gap-2"
-                    >
-                        Apply All
-                        <ChevronRight size={14} />
+                        <History size={14} />
+                        History
+                        {actionHistory.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-indigo-500 text-white rounded-full text-[10px]">{actionHistory.length}</span>}
                     </button>
                 </div>
             </div>
+            
+            {showHistory ? (
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                     <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                            <FileText size={16} className="text-slate-400" />
+                            Applied Action Log
+                        </h4>
+                        <button onClick={() => setShowHistory(false)} className="text-xs text-indigo-600 font-bold hover:underline">Back to Suggestions</button>
+                     </div>
+                     {actionHistory.length === 0 ? (
+                         <div className="text-center py-12 text-slate-400 italic">No actions recorded yet.</div>
+                     ) : (
+                         actionHistory.map((log, i) => (
+                             <div key={i} className="bg-slate-50 rounded-lg p-4 border border-slate-200 opacity-75 hover:opacity-100 transition-opacity">
+                                 <div className="flex justify-between items-start mb-2">
+                                     <span className="text-sm font-bold text-slate-800">{log.campaignName}</span>
+                                     <span className="text-xs text-slate-400 font-mono">{log.timestamp.toLocaleTimeString()}</span>
+                                 </div>
+                                 <div className="flex gap-2 text-xs">
+                                     <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">{log.suggestedAction.replace('_', ' ')}</span>
+                                     <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded">{log.appliedStrategy} Strategy</span>
+                                 </div>
+                             </div>
+                         ))
+                     )}
+                </div>
+            ) : (
+                <div className="space-y-4 pb-24">
+                {suggestions.length === 0 && (
+                    <div className="text-center p-12 bg-white rounded-2xl border border-slate-200 border-dashed text-slate-500">
+                        <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Check className="w-8 h-8 text-emerald-500" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-slate-900 mb-1">Optimization Complete</h4>
+                        <p>All actionable insights have been applied.</p>
+                    </div>
+                )}
+                {suggestions.map((item) => {
+                    const isCompleted = completedSuggestions.includes(item.campaignId);
+                    const isSelected = selectedIds.has(item.campaignId);
+                    const isIncrease = item.suggestedAction.includes('INCREASE');
+                    const isHighRisk = item.currentAcos > settings.targetAcos;
+
+                    return (
+                        <div 
+                        key={item.campaignId} 
+                        className={`bg-white rounded-xl border transition-all duration-300 ease-in-out group hover:shadow-md ${
+                            isCompleted ? 'opacity-0 translate-x-full' : 'opacity-100'
+                        } ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 shadow-md bg-indigo-50/10' : 'border-slate-200 shadow-sm'}`}
+                        >
+                        <div className="p-5 flex items-start gap-4">
+                            <button 
+                                onClick={() => toggleSelection(item.campaignId)}
+                                className="mt-1 text-slate-300 hover:text-indigo-500 transition-colors"
+                            >
+                                {isSelected ? <CheckSquare size={20} className="text-indigo-600" /> : <Square size={20} />}
+                            </button>
+
+                            <div className="flex-1 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 text-lg leading-tight mb-1">{item.suggestion}</h4>
+                                        <div className="flex items-center gap-2">
+                                            <BarChart2 size={12} className="text-slate-400"/>
+                                            <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">{item.campaignName}</span>
+                                        </div>
+                                    </div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isIncrease ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                        {isIncrease ? <TrendingUp size={16} /> : <Target size={16} />}
+                                    </div>
+                                </div>
+
+                                {/* Visual Risk Bar */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden relative border border-slate-200">
+                                        {/* Target Marker Line */}
+                                        <div 
+                                            className="absolute top-0 bottom-0 w-0.5 bg-slate-800 z-10" 
+                                            style={{ left: `${Math.min((settings.targetAcos / 100) * 100, 100)}%` }}
+                                            title={`Target ACOS: ${settings.targetAcos}%`}
+                                        ></div>
+                                        
+                                        {/* Actual Bar */}
+                                        <div 
+                                            className={`h-full rounded-full ${isHighRisk ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                            style={{ width: `${Math.min(item.currentAcos, 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-600 w-24 text-right">
+                                        <span className={isHighRisk ? "text-red-600" : "text-emerald-600"}>{item.currentAcos.toFixed(1)}%</span> 
+                                        <span className="text-slate-400 font-normal"> / {settings.targetAcos}% ACOS</span>
+                                    </div>
+                                </div>
+                                
+                                <p className="text-slate-600 text-sm leading-relaxed bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+                                    {item.reasoning}
+                                </p>
+                                
+                                <div className="pt-2 flex items-center justify-between border-t border-slate-100 mt-2">
+                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-md border uppercase tracking-wide ${isIncrease ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                                        {item.suggestedAction.replace('_', ' ')}
+                                    </span>
+                                    <button 
+                                        onClick={() => handleApplySuggestion(item.campaignId)}
+                                        className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        Apply Action <ChevronRight size={14} className="ml-1"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    );
+                })}
+                </div>
+            )}
+            
+            {/* Bulk Action Bar */}
+            {!showHistory && (
+                <div className={`fixed bottom-8 left-1/2 lg:left-[45%] transform -translate-x-1/2 z-30 transition-all duration-300 ${selectedIds.size > 0 ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95'}`}>
+                    <div className="bg-slate-900 text-white rounded-2xl shadow-2xl p-3 pl-4 pr-3 flex items-center gap-6 border border-slate-700">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-500 rounded-lg p-1.5 animate-pulse">
+                                <Zap size={18} className="text-white" />
+                            </div>
+                            <div>
+                                <div className="font-bold text-sm">{selectedIds.size} Changes Queued</div>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={handleBulkApply}
+                            className="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                        >
+                            Apply All
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
           </div>
 

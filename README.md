@@ -10,7 +10,7 @@
 [![Gemini API](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-8E75B2.svg)](https://ai.google.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC.svg)](https://tailwindcss.com/)
 
-**Scale your Amazon FBA brands with precision. Alerion combines real-time performance tracking with Generative AI to automate strategic decision-making.**
+**Scale your Amazon FBA brands with precision. Alerion combines data visualization with Generative AI to create a safe, "operator-in-the-loop" optimization workflow.**
 
 [🚀 Live Demo](#) • [📚 Documentation](#) • [🐞 Report Issue](#)
 
@@ -20,21 +20,24 @@
 
 ## 🌟 Core Features
 
+### 🧪 The PPC Lab Workflow
+A disciplined, 4-step process designed for safety and strategy:
+1.  **Ingestion:** Manual upload of Bulk Operations files (`.xlsx`) with automated data health checks.
+2.  **AI Analysis:** Gemini 2.5 scans campaigns against your custom ACOS targets and strategic intent.
+3.  **Operator Review:** Suggestions are queued, not applied. You review the reasoning before approving.
+4.  **Execution & Logging:** Apply changes in bulk and maintain a permanent audit trail of all AI actions.
+
+### 🧠 Gemini AI Optimizer
+Leveraging **Google's Gemini 2.5 Flash**, Alerion acts as an expert analyst:
+- **Visual Risk Assessment:** Instantly see how far a campaign drifts from your Target ACOS with visual progress bars.
+- **Strategic Context:** Choose between `Profitability`, `Balanced`, or `Growth` modes to tailor the AI's advice.
+- **Action History:** A dedicated log drawer tracks every bid adjustment and pause action for accountability.
+
 ### 📊 Executive Dashboard
 A centralized command center for your e-commerce operations.
 - **Real-time KPIs:** Monitor Sales, Ad Spend, ACOS (Advertising Cost of Sales), and ROAS.
 - **Trend Analysis:** Interactive visualizations using Recharts to track performance over time.
-- **Market Insights:** Automated alerts for competitor movements and inventory health.
-
-### 🧠 Gemini AI Optimizer
-Leveraging **Google's Gemini 2.5 Flash**, Alerion acts as an expert analyst:
-- **Automated Audits:** Analyzes campaign data against target ACOS thresholds.
-- **Strategic Reasoning:** Doesn't just give a number—provides the *reasoning* (e.g., "High ACOS detected, reduce bid").
-- **Actionable Suggestions:** Generates specific actions: `INCREASE_BID`, `DECREASE_BID`, `PAUSE_KEYWORD`.
-
-### 📋 Campaign Management
-- **Status Visibility:** Instant view of Active, Paused, and Out-of-Budget campaigns.
-- **Performance Grading:** Color-coded metrics to instantly identify underperforming assets.
+- **Market Insights:** Automated, AI-generated executive briefings and sentiment analysis.
 
 ---
 
@@ -89,11 +92,11 @@ The application follows a clean, service-oriented architecture:
 
 ```
 src/
-├── components/       # Reusable UI blocks (KPICards, CampaignTable)
+├── components/       # Reusable UI blocks (KPICards, CampaignTable, AIOptimizer)
 ├── services/         # API Integration layers
-│   └── geminiService.ts  # Direct interface with Google GenAI
-├── types/            # TypeScript definitions (Campaigns, Suggestions)
-└── constants.ts      # Mock data and configuration
+│   └── geminiService.ts  # Direct interface with Google GenAI with JSON Schema
+├── types/            # TypeScript definitions (Campaigns, Suggestions, Logs)
+└── constants.ts      # Mock data and simulation logic
 ```
 
 ### AI Implementation Details
@@ -103,9 +106,9 @@ The `geminiService` utilizes structured JSON schema generation to ensure determi
 
 ## 🔮 Future Roadmap
 
-- [ ] **Google Sheets Integration:** Two-way sync for bulk upload operations.
+- [ ] **SP-API Integration:** Replace manual file uploads with direct Amazon Advertising API connection.
+- [ ] **Google Sheets Two-Way Sync:** Export optimization queues directly to sheets for bulk upload.
 - [ ] **Multi-Tenant Support:** Manage multiple Seller Central accounts.
-- [ ] **Advanced Prompt Engineering:** Custom system instructions for aggressive vs. conservative scaling strategies.
 
 ---
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LayoutDashboard, BarChart3, Settings, Zap, Menu, X, Bell, User, ChevronLeft, ChevronRight, LogOut, Save, Link as LinkIcon, CheckCircle2, RefreshCw, AlertCircle, ExternalLink, FileSpreadsheet, UploadCloud, Sparkles, Database, FileText } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings, Zap, Menu, X, Bell, User, ChevronLeft, ChevronRight, LogOut, Save, Link as LinkIcon, CheckCircle2, RefreshCw, AlertCircle, ExternalLink, FileSpreadsheet, UploadCloud, Sparkles, Database, FileText, ArrowRight, Layers, ShieldCheck, Microscope } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AIOptimizer } from './components/AIOptimizer';
 import { AppSettings, Campaign } from './types';
@@ -44,6 +44,7 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<'IDLE' | 'UPLOADING' | 'SUCCESS'>('IDLE');
   const [lastUploadedFile, setLastUploadedFile] = useState<string | null>(null);
+  const [uploadStats, setUploadStats] = useState<{count: number; totalSpend: number} | null>(null);
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,13 +56,17 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
         setUploadState('UPLOADING');
+        setUploadStats(null);
         
         // Simulate processing delay and parsing logic
         setTimeout(() => {
             // Generate fresh data to simulate parsing the CSV/XLSX
             const newData = generateNewCampaignData();
+            const totalSpend = newData.reduce((acc, curr) => acc + curr.spend, 0);
+
             setCampaigns(newData);
             setLastUpdated(new Date());
+            setUploadStats({ count: newData.length, totalSpend });
             
             setUploadState('SUCCESS');
             setLastUploadedFile(file.name);
@@ -71,7 +76,7 @@ const App: React.FC = () => {
                 setUploadState('IDLE');
                 // Automatically switch to dashboard to show results
                 setCurrentView(View.DASHBOARD);
-            }, 1500);
+            }, 2500);
         }, 2000);
     }
   };
@@ -90,9 +95,62 @@ const App: React.FC = () => {
         return <AIOptimizer settings={settings} campaigns={campaigns} />;
       case View.SETTINGS:
         return (
-          <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+          <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
              
-             {/* Data Ingestion Card - EMPHASIZED MANUAL UPLOAD */}
+             {/* Workflow Blueprint Visualization */}
+             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-200 bg-slate-50">
+                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Microscope size={20} className="text-indigo-600"/> The PPC Lab Workflow
+                    </h2>
+                </div>
+                <div className="p-8">
+                    <div className="relative">
+                        {/* Connecting Line */}
+                        <div className="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 z-0"></div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
+                            {/* Step 1 */}
+                            <div className="flex flex-col items-center text-center group">
+                                <div className="w-12 h-12 bg-white border-2 border-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm mb-3 group-hover:border-indigo-500 group-hover:scale-110 transition-all">
+                                    <FileSpreadsheet size={24} />
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-900">1. Ingestion</h3>
+                                <p className="text-xs text-slate-500 mt-1 max-w-[140px]">Upload raw bulk files. System validates data integrity.</p>
+                            </div>
+
+                             {/* Step 2 */}
+                             <div className="flex flex-col items-center text-center group">
+                                <div className="w-12 h-12 bg-white border-2 border-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm mb-3 group-hover:border-indigo-500 group-hover:scale-110 transition-all">
+                                    <Sparkles size={24} />
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-900">2. AI Analysis</h3>
+                                <p className="text-xs text-slate-500 mt-1 max-w-[140px]">Gemini normalizes data & audits vs. Target ACOS.</p>
+                            </div>
+
+                             {/* Step 3 */}
+                             <div className="flex flex-col items-center text-center group">
+                                <div className="w-12 h-12 bg-white border-2 border-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm mb-3 group-hover:border-indigo-500 group-hover:scale-110 transition-all">
+                                    <ShieldCheck size={24} />
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-900">3. Operator Review</h3>
+                                <p className="text-xs text-slate-500 mt-1 max-w-[140px]">Review queued actions. Nothing applies without you.</p>
+                            </div>
+
+                             {/* Step 4 */}
+                             <div className="flex flex-col items-center text-center group">
+                                <div className="w-12 h-12 bg-white border-2 border-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm mb-3 group-hover:border-indigo-500 group-hover:scale-110 transition-all">
+                                    <Layers size={24} />
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-900">4. Execution</h3>
+                                <p className="text-xs text-slate-500 mt-1 max-w-[140px]">Apply changes & log history for future learning.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+
+             {/* Data Ingestion Card */}
              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-8 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
                     <div>
@@ -100,7 +158,7 @@ const App: React.FC = () => {
                             <Database size={20} className="text-indigo-600"/> Data Ingestion
                         </h2>
                         <p className="text-slate-500 text-sm mt-1">
-                          Upload your Amazon Ads <strong>Bulk Operations File</strong> or <strong>Search Term Report</strong>.
+                          Upload your Amazon Ads <strong>Bulk Operations File</strong> to begin the cycle.
                         </p>
                     </div>
                 </div>
@@ -111,7 +169,7 @@ const App: React.FC = () => {
                         <div className="flex-1 space-y-4">
                              <div className="flex items-start gap-4">
                                 <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                                    <FileSpreadsheet className="text-indigo-600 w-6 h-6" />
+                                    <UploadCloud className="text-indigo-600 w-6 h-6" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900">Manual Upload</h3>
@@ -130,16 +188,13 @@ const App: React.FC = () => {
                                     <li className="flex items-center gap-2 text-sm text-slate-600">
                                         <FileText size={14} className="text-slate-400" /> Search Term Report (.csv)
                                     </li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-600">
-                                        <FileText size={14} className="text-slate-400" /> Advertised Product Report (.csv)
-                                    </li>
                                 </ul>
                             </div>
                         </div>
 
                         <div className="flex-1">
                             <div 
-                                className={`h-full min-h-[200px] border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer group relative overflow-hidden ${
+                                className={`h-full min-h-[220px] border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer group relative overflow-hidden ${
                                     uploadState === 'UPLOADING' ? 'border-indigo-300 bg-indigo-50/30' : 
                                     uploadState === 'SUCCESS' ? 'border-emerald-300 bg-emerald-50/30' : 
                                     'border-indigo-200 bg-indigo-50/10 hover:border-indigo-400 hover:bg-indigo-50/30'
@@ -159,22 +214,41 @@ const App: React.FC = () => {
                                     <div className="py-2 animate-in fade-in zoom-in">
                                         <RefreshCw className="animate-spin text-indigo-600 w-10 h-10 mb-3 mx-auto" />
                                         <span className="text-indigo-700 font-bold text-base block">Processing Dataset...</span>
-                                        <span className="text-indigo-400 text-sm">Analyzing campaign structures</span>
+                                        <span className="text-indigo-400 text-sm">Normalizing columns & checking integrity</span>
                                     </div>
                                 ) : uploadState === 'SUCCESS' ? (
-                                    <div className="py-2 animate-in fade-in zoom-in">
+                                    <div className="py-2 animate-in fade-in zoom-in w-full">
                                         <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
                                             <CheckCircle2 className="w-7 h-7" />
                                         </div>
-                                        <span className="text-emerald-700 font-bold text-base block">Import Complete</span>
-                                        <span className="text-emerald-600 text-sm">Redirecting to Dashboard...</span>
+                                        <span className="text-emerald-700 font-bold text-base block mb-4">Ingestion Successful</span>
+                                        
+                                        {/* Data Health Check Card */}
+                                        {uploadStats && (
+                                            <div className="bg-white/60 backdrop-blur rounded-lg border border-emerald-200 p-3 mx-auto max-w-[240px] text-left space-y-2 mb-2">
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500">Campaigns:</span>
+                                                    <span className="font-bold text-slate-800">{uploadStats.count}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500">Total Spend:</span>
+                                                    <span className="font-bold text-slate-800">${uploadStats.totalSpend.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500">Status:</span>
+                                                    <span className="font-bold text-emerald-600">Clean</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        <span className="text-emerald-600 text-xs font-medium animate-pulse">Redirecting to Dashboard...</span>
                                     </div>
                                 ) : (
                                     <>
                                         <div className="w-14 h-14 bg-white rounded-full shadow-lg shadow-indigo-100 border border-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:border-indigo-200">
                                             <UploadCloud className="text-indigo-500 w-7 h-7" />
                                         </div>
-                                        <p className="text-base font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">Click to Upload Report</p>
+                                        <p className="text-base font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">Click to Upload Bulk File</p>
                                         <p className="text-sm text-slate-400 mt-2">or drag and drop file here</p>
                                         
                                         {lastUploadedFile && (
@@ -190,25 +264,6 @@ const App: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    
-                    {/* API Section - Deprioritized/Disabled */}
-                    <div className="border-t border-slate-100 pt-8">
-                         <div className="flex items-center justify-between opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                                    <LinkIcon className="text-slate-400 w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-slate-900">Amazon SP-API Connection</h3>
-                                    <p className="text-xs text-slate-500">Automated syncing is currently disabled for security.</p>
-                                </div>
-                            </div>
-                            <button disabled className="text-xs font-semibold px-3 py-1.5 bg-slate-100 text-slate-400 rounded-lg cursor-not-allowed">
-                                Coming Soon
-                            </button>
-                         </div>
-                    </div>
-
                 </div>
              </div>
 
