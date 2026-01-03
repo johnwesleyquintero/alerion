@@ -7,6 +7,12 @@ export enum CampaignStatus {
 
 export type OptimizationStrategy = 'PROFITABILITY' | 'GROWTH' | 'BALANCED';
 
+export interface AppSettings {
+  targetAcos: number;
+  monthlyBudget: number;
+  brandName: string;
+}
+
 export interface Campaign {
   id: string;
   name: string;

@@ -4,28 +4,31 @@ import { Campaign, OptimizationSuggestion, OptimizationStrategy, MarketInsight, 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
-export const analyzeCampaigns = async (campaigns: Campaign[], strategy: OptimizationStrategy): Promise<OptimizationSuggestion[]> => {
+export const analyzeCampaigns = async (campaigns: Campaign[], strategy: OptimizationStrategy, targetAcos: number = 30): Promise<OptimizationSuggestion[]> => {
   if (!apiKey) {
     console.warn("API Key is missing. Returning mock analysis.");
-    return mockAnalysis(campaigns);
+    return mockAnalysis(campaigns, targetAcos);
   }
 
   let strategyContext = "";
   switch (strategy) {
     case 'PROFITABILITY':
-      strategyContext = "Prioritize reducing ACOS aggressively. Suggest pausing keywords with ACOS > 30% and lowering bids on low ROAS campaigns. We are maximizing profit.";
+      strategyContext = `Prioritize reducing ACOS aggressively below our strict target of ${targetAcos}%. Suggest pausing keywords with ACOS > ${targetAcos}% and lowering bids.`;
       break;
     case 'GROWTH':
-      strategyContext = "Prioritize Impressions and Sales volume. ACOS up to 45% is acceptable. Suggest increasing bids on high converting terms. We are in launch/ranking mode.";
+      strategyContext = `Prioritize Impressions and Sales volume. ACOS up to ${targetAcos + 15}% is acceptable (Current Target: ${targetAcos}%). Suggest increasing bids.`;
       break;
     default:
-      strategyContext = "Maintain a balance between Spend and Sales. Target ACOS around 30%. Optimize outliers.";
+      strategyContext = `Maintain a balance between Spend and Sales. Target ACOS is ${targetAcos}%. Optimize outliers significantly above this target.`;
   }
 
   try {
     const prompt = `
       You are an expert Amazon Advertising Analyst. 
       Analyze the following campaign performance data and provide actionable optimization suggestions.
+      
+      GLOBAL CONFIGURATION:
+      - Target ACOS: ${targetAcos}%
       
       CURRENT STRATEGY: ${strategyContext}
       
@@ -63,7 +66,7 @@ export const analyzeCampaigns = async (campaigns: Campaign[], strategy: Optimiza
 
   } catch (error) {
     console.error("Gemini Analysis Failed:", error);
-    return mockAnalysis(campaigns);
+    return mockAnalysis(campaigns, targetAcos);
   }
 };
 
@@ -189,14 +192,14 @@ export const createCampaignChat = (campaigns: Campaign[], strategy: Optimization
 
 
 // Fallback for demo purposes if API key is invalid/missing
-const mockAnalysis = (campaigns: Campaign[]): OptimizationSuggestion[] => {
+const mockAnalysis = (campaigns: Campaign[], targetAcos: number): OptimizationSuggestion[] => {
   return campaigns.map(c => {
-    if (c.acos > 30) {
+    if (c.acos > targetAcos) {
       return {
         campaignId: c.id,
         campaignName: c.name,
-        suggestion: "High ACOS detected. Reduce bids on underperforming keywords.",
-        reasoning: `ACOS is at ${c.acos.toFixed(2)}%, which is above the 30% target.`,
+        suggestion: "High ACOS detected. Reduce bids.",
+        reasoning: `ACOS is at ${c.acos.toFixed(2)}%, which is above the ${targetAcos}% target.`,
         suggestedAction: 'DECREASE_BID',
         value: 0.15
       };

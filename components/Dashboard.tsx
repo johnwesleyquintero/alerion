@@ -255,19 +255,8 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Tables Section */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-         <div className="flex justify-between items-center mb-6">
-            <div>
-                <h3 className="text-lg font-bold text-slate-800">Active Campaigns</h3>
-                <p className="text-sm text-slate-500">Real-time performance metrics</p>
-            </div>
-            <button className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center gap-1 transition-colors">
-                View All <ArrowRight size={16} />
-            </button>
-         </div>
-         <CampaignTable campaigns={MOCK_CAMPAIGNS} onCampaignClick={setSelectedCampaign} />
-      </div>
+      {/* Tables Section - Just the Table now, title is inside component */}
+      <CampaignTable campaigns={MOCK_CAMPAIGNS} onCampaignClick={setSelectedCampaign} />
 
       {/* Modals */}
       {selectedCampaign && (

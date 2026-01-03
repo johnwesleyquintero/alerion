@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeCampaigns, createCampaignChat } from '../services/geminiService';
 import { MOCK_CAMPAIGNS } from '../constants';
-import { OptimizationSuggestion, OptimizationStrategy } from '../types';
+import { OptimizationSuggestion, OptimizationStrategy, AppSettings } from '../types';
 import { Bot, Sparkles, ChevronRight, Loader2, Send, Target, TrendingUp, DollarSign, MessageSquare, Check, Square, CheckSquare, Zap, User, BarChart2 } from 'lucide-react';
 import { Chat, GenerateContentResponse } from "@google/genai";
 
@@ -10,13 +10,17 @@ interface ChatMessage {
   text: string;
 }
 
+interface AIOptimizerProps {
+  settings: AppSettings;
+}
+
 const QUICK_PROMPTS = [
-  { text: "📉 Reduce High ACOS", prompt: "Identify campaigns with ACOS above 30% and suggest immediate bid adjustments." },
+  { text: "📉 Reduce High ACOS", prompt: "Identify campaigns with ACOS above our target and suggest immediate bid adjustments." },
   { text: "🚀 Scale Winners", prompt: "Which campaigns have a ROAS above 3.0? How can we scale them?" },
   { text: "💸 Audit Wasted Spend", prompt: "Find keywords with high spend but zero sales." },
 ];
 
-export const AIOptimizer: React.FC = () => {
+export const AIOptimizer: React.FC<AIOptimizerProps> = ({ settings }) => {
   const [strategy, setStrategy] = useState<OptimizationStrategy>('BALANCED');
   const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,12 +50,13 @@ export const AIOptimizer: React.FC = () => {
     setCompletedSuggestions([]);
     setSelectedIds(new Set());
     try {
-      const results = await analyzeCampaigns(MOCK_CAMPAIGNS, strategy);
+      // Pass the user's Target ACOS to the service
+      const results = await analyzeCampaigns(MOCK_CAMPAIGNS, strategy, settings.targetAcos);
       setSuggestions(results);
       
       const chat = createCampaignChat(MOCK_CAMPAIGNS, strategy);
       setChatSession(chat);
-      setMessages([{ role: 'model', text: `Analysis Complete. I've reviewed ${MOCK_CAMPAIGNS.length} campaigns focusing on a ${strategy.toLowerCase()} strategy. I found ${results.length} optimization opportunities.` }]);
+      setMessages([{ role: 'model', text: `Analysis Complete. I've reviewed ${MOCK_CAMPAIGNS.length} campaigns focusing on a ${strategy.toLowerCase()} strategy using a Target ACOS of ${settings.targetAcos}%. I found ${results.length} optimization opportunities.` }]);
       
       setAnalyzed(true);
     } catch (error) {
@@ -137,7 +142,7 @@ export const AIOptimizer: React.FC = () => {
                 </div>
                 <h2 className="text-3xl font-bold text-slate-900 mb-3">Optimize Campaign Performance</h2>
                 <p className="text-slate-600 text-lg">
-                    Select your objective. Alerion will analyze your data, identifying inefficiencies and growth opportunities instantly.
+                    Select your objective. Alerion will analyze your data against your <strong>{settings.targetAcos}% ACOS Target</strong>, identifying inefficiencies and growth opportunities instantly.
                 </p>
             </div>
 
